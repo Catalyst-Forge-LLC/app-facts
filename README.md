@@ -104,22 +104,31 @@ Only **manifest files** (root or one level down — `package.json`, `pyproject.t
 
 ## Install & run
 
+Pass the **project to scan** as a positional path (or `--path`). The script location and the target repo are independent — you do not need to `cd` into either.
+
 ### Python
 
 ```bash
-cd generator
-pip install -r requirements.txt        # just PyYAML
+# once — from this repo (or any checkout):
+pip install -r generator/requirements.txt   # PyYAML + segno
 
-# then, from your project's root:
-python3 generate_app_facts.py --provider ollama --model llama3.1
+# scan any project (writes TARGET/APP_FACTS.md + .png):
+python3 /path/to/app-facts/generator/generate_app_facts.py /path/to/my-app \
+  --provider ollama --model llama3.1
+
+# dogfood this repo from its root:
+python3 generator/generate_app_facts.py . --provider ollama --model llama3.1
 ```
 
 ### Node.js
 
 ```bash
-# no install step — Node 18+ has everything built in.
-# from your project's root:
-node generator/generate_app_facts.js --provider ollama --model llama3.1
+# no install — Node 18+ and a vendored QR encoder. Scan any project:
+node /path/to/app-facts/generator/generate_app_facts.js /path/to/my-app \
+  --provider ollama --model llama3.1
+
+# dogfood this repo from its root:
+node generator/generate_app_facts.js . --provider ollama --model llama3.1
 ```
 
 ## Choosing a provider
@@ -139,50 +148,50 @@ Both versions take `--provider` and `--model`. Local-first via Ollama needs no k
 <details>
 <summary><strong>All five providers, both languages (copy-paste)</strong></summary>
 
-**Python**
+**Python** (replace `TARGET` with the project directory)
 
 ```bash
 # Local (Ollama)
-python3 generate_app_facts.py --provider ollama --model llama3.1
+python3 generator/generate_app_facts.py TARGET --provider ollama --model llama3.1
 
 # OpenAI
 export OPENAI_API_KEY=sk-...
-python3 generate_app_facts.py --provider openai --model gpt-4o
+python3 generator/generate_app_facts.py TARGET --provider openai --model gpt-4o
 
 # Claude
 export ANTHROPIC_API_KEY=sk-ant-...
-python3 generate_app_facts.py --provider anthropic --model claude-sonnet-4-6
+python3 generator/generate_app_facts.py TARGET --provider anthropic --model claude-sonnet-4-6
 
 # xAI (Grok)
 export XAI_API_KEY=xai-...
-python3 generate_app_facts.py --provider xai --model grok-4
+python3 generator/generate_app_facts.py TARGET --provider xai --model grok-4
 
 # Gemini
 export GEMINI_API_KEY=...
-python3 generate_app_facts.py --provider gemini --model gemini-2.5-pro
+python3 generator/generate_app_facts.py TARGET --provider gemini --model gemini-2.5-pro
 ```
 
 **Node.js**
 
 ```bash
 # Local (Ollama)
-node generate_app_facts.js --provider ollama --model llama3.1
+node generator/generate_app_facts.js TARGET --provider ollama --model llama3.1
 
 # OpenAI
 export OPENAI_API_KEY=sk-...
-node generate_app_facts.js --provider openai --model gpt-4o
+node generator/generate_app_facts.js TARGET --provider openai --model gpt-4o
 
 # Claude
 export ANTHROPIC_API_KEY=sk-ant-...
-node generate_app_facts.js --provider anthropic --model claude-sonnet-4-6
+node generator/generate_app_facts.js TARGET --provider anthropic --model claude-sonnet-4-6
 
 # xAI (Grok)
 export XAI_API_KEY=xai-...
-node generate_app_facts.js --provider xai --model grok-4
+node generator/generate_app_facts.js TARGET --provider xai --model grok-4
 
 # Gemini
 export GEMINI_API_KEY=...
-node generate_app_facts.js --provider gemini --model gemini-2.5-pro
+node generator/generate_app_facts.js TARGET --provider gemini --model gemini-2.5-pro
 ```
 
 </details>
@@ -191,12 +200,13 @@ node generate_app_facts.js --provider gemini --model gemini-2.5-pro
 
 Both versions accept the same flags:
 
-| Flag | Default | Description |
+| Flag / arg | Default | Description |
 |---|---|---|
+| `TARGET` | `.` | Positional path to the repo to scan. |
+| `--path` | — | Same as `TARGET` (use one or the other). |
 | `--provider` | `ollama` | One of `ollama`, `openai`, `anthropic`, `xai`, `gemini`. |
 | `--model` | *(required)* | Model name for the chosen provider. |
-| `--path` | `.` | Path to the repo to scan. |
-| `--output` | `<path>/APP_FACTS.md` | Where to write the result. |
+| `--output` | `<TARGET>/APP_FACTS.md` | Where to write the markdown (relative paths are under `TARGET`). |
 | `--ollama-host` | `http://localhost:11434` | Override the Ollama endpoint. |
 | `--consulting-link` | — | URL for a credit footer / `built_by` field. |
 | `--consulting-name` | — | Display name for that credit. |
@@ -208,11 +218,11 @@ Both versions accept the same flags:
 
 ```bash
 # Dogfood / Catalyst Forge projects
-node generator/generate_app_facts.js --provider ollama --model llama3.1 \
+node generator/generate_app_facts.js . --provider ollama --model llama3.1 \
   --consulting-link https://www.catalystforge.com/ \
   --consulting-name "Catalyst Forge"
 
-python3 generator/generate_app_facts.py --provider ollama --model llama3.1 \
+python3 generator/generate_app_facts.py . --provider ollama --model llama3.1 \
   --consulting-link https://www.catalystforge.com/ \
   --consulting-name "Catalyst Forge"
 ```
@@ -220,11 +230,11 @@ python3 generator/generate_app_facts.py --provider ollama --model llama3.1 \
 ### Preview / CI check
 
 ```bash
-... --dry-run
+... TARGET --dry-run
 
-# after APP_FACTS.md exists:
-node generator/generate_app_facts.js --check
-python3 generator/generate_app_facts.py --check
+# after APP_FACTS.md exists in TARGET:
+node generator/generate_app_facts.js TARGET --check
+python3 generator/generate_app_facts.py TARGET --check
 ```
 
 ## How it works

@@ -5,9 +5,9 @@
  * Requires Node >= 18 (built-in fetch). No npm dependencies.
  *
  * Usage:
- *   node generate_app_facts.js --provider ollama --model llama3.1
- *   node generate_app_facts.js --check
- *   node generate_app_facts.js --provider ollama --model llama3.1 \
+ *   node generate_app_facts.js /path/to/project --provider ollama --model llama3.1
+ *   node generate_app_facts.js --path /path/to/project --check
+ *   node generate_app_facts.js . --provider ollama --model llama3.1 \
  *     --consulting-link https://www.catalystforge.com/ \
  *     --consulting-name "Catalyst Forge"
  */
@@ -42,13 +42,20 @@ const SYSTEM_PROMPT = fs.readFileSync(path.join(__dirname, "prompt.md"), "utf8")
 
 function parseArgs(argv) {
   const args = {
-    path: ".", output: null, provider: "ollama", model: null,
+    target: null, path: null, output: null, provider: "ollama", model: null,
     ollamaHost: "http://localhost:11434",
     consultingLink: null, consultingName: null, dryRun: false, check: false, noQr: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    const next = () => argv[++i];
+    const next = () => {
+      const v = argv[++i];
+      if (v === undefined || v.startsWith("-")) {
+        console.error(`Missing value after ${a}`);
+        process.exit(1);
+      }
+      return v;
+    };
     if (a === "--path") args.path = next();
     else if (a === "--output") args.output = next();
     else if (a === "--provider") args.provider = next();
@@ -59,12 +66,69 @@ function parseArgs(argv) {
     else if (a === "--dry-run") args.dryRun = true;
     else if (a === "--check") args.check = true;
     else if (a === "--no-qr") args.noQr = true;
+    else if (a === "--help" || a === "-h") args.help = true;
+    else if (a.startsWith("-")) {
+      console.error(`Unknown option: ${a}`);
+      process.exit(1);
+    } else if (args.target == null) {
+      args.target = a;
+    } else {
+      console.error(`Unexpected argument: ${a}`);
+      process.exit(1);
+    }
+  }
+  if (args.help) {
+    console.log(`Usage: node generate_app_facts.js [TARGET] [options]
+
+  TARGET                 Repo to scan (default: .). Same as --path.
+  --path <dir>           Repo to scan (alternative to TARGET)
+  --output <file>        Output markdown path (default: <TARGET>/APP_FACTS.md)
+  --provider <name>      ollama | openai | anthropic | xai | gemini (default: ollama)
+  --model <name>         Model for the provider (required unless --check)
+  --ollama-host <url>    Ollama base URL
+  --consulting-link <url>
+  --consulting-name <name>
+  --dry-run              Print markdown; do not write files
+  --check                Exit non-zero if APP_FACTS.md fingerprint is stale
+  --no-qr                Skip APP_FACTS.png
+  -h, --help             Show this help
+
+Examples:
+  node generate_app_facts.js ~/code/my-app --provider ollama --model llama3.1
+  node generate_app_facts.js --path ~/code/my-app --check`);
+    process.exit(0);
   }
   if (!args.check && !args.model) {
     console.error("Missing required --model <name> (or pass --check)");
     process.exit(1);
   }
   return args;
+}
+
+/** Resolve scan root + output paths. Relative --output is relative to TARGET. */
+function resolvePaths(args) {
+  if (args.target && args.path) {
+    const a = path.resolve(args.target);
+    const b = path.resolve(args.path);
+    if (a !== b) {
+      console.error("Pass either a positional TARGET or --path, not both with different values");
+      process.exit(1);
+    }
+  }
+  const root = path.resolve(args.target || args.path || ".");
+  if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) {
+    console.error(`Target is not a directory: ${root}`);
+    process.exit(1);
+  }
+  let outPath;
+  if (args.output) {
+    outPath = path.isAbsolute(args.output)
+      ? path.resolve(args.output)
+      : path.resolve(root, args.output);
+  } else {
+    outPath = path.join(root, "APP_FACTS.md");
+  }
+  return { root, outPath };
 }
 
 // ---------- Repo scanning ----------
@@ -540,8 +604,7 @@ function runCheck(outPath, fingerprint) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const root = path.resolve(args.path);
-  const outPath = args.output ? path.resolve(args.output) : path.join(root, "APP_FACTS.md");
+  const { root, outPath } = resolvePaths(args);
 
   const facts = detectRepoFacts(root);
   if (!hasEnoughEvidence(facts)) {
