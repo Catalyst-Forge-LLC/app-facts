@@ -417,6 +417,35 @@ def extract_fingerprint_from_file(text):
     return m.group(1) if m else None
 
 
+def qr_target_url(fm):
+    """URL encoded in APP_FACTS.png — homepage, else GitHub APP_FACTS.md, else repo, else site."""
+    if fm.get("homepage"):
+        return fm["homepage"]
+    repo = fm.get("repository")
+    if repo:
+        m = re.search(r"github\.com[/:]([^/]+/[^/#?]+)", str(repo), re.I)
+        if m:
+            name = re.sub(r"\.git$", "", m.group(1), flags=re.I)
+            return f"https://github.com/{name}/blob/main/APP_FACTS.md"
+        return repo
+    return "https://appfacts.dev"
+
+
+def png_path_for(md_path: Path) -> Path:
+    if md_path.suffix.lower() == ".md":
+        return md_path.with_suffix(".png")
+    return Path(str(md_path) + ".png")
+
+
+def write_qr_png(text: str, out_path: Path):
+    try:
+        import segno
+    except ImportError:
+        sys.exit("Missing dependency for QR PNGs: pip install -r requirements.txt")
+    qr = segno.make(text, error="m")
+    qr.save(str(out_path), scale=8, border=2)
+
+
 def run_check(out_path: Path, fingerprint: str):
     if not out_path.exists():
         sys.exit(f"APP_FACTS.md missing at {out_path}")
@@ -440,6 +469,7 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="Print without writing")
     ap.add_argument("--check", action="store_true",
                     help="Re-scan and exit non-zero if APP_FACTS.md fingerprint is stale")
+    ap.add_argument("--no-qr", action="store_true", help="Skip writing APP_FACTS.png")
     args = ap.parse_args()
 
     if not args.check and not args.model:
@@ -486,13 +516,20 @@ def main():
         sys.exit("Validation failed:\n- " + "\n- ".join(errors))
 
     output = render_app_facts(fm, args.consulting_link, args.consulting_name)
+    qr_url = qr_target_url(fm)
+    png_path = png_path_for(out_path)
 
     if args.dry_run:
         print(output)
+        if not args.no_qr:
+            print(f"Would write QR PNG -> {png_path}\nQR target: {qr_url}", file=sys.stderr)
     else:
         with out_path.open("w", encoding="utf-8", newline="\n") as fh:
             fh.write(output)
         print(f"Wrote {out_path} (fingerprint {fingerprint})")
+        if not args.no_qr:
+            write_qr_png(qr_url, png_path)
+            print(f"Wrote {png_path} (QR -> {qr_url})")
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://appfacts.dev">appfacts.dev</a> ·
   <a href="./SPEC.md">Spec</a> ·
-  <a href="./schema/app-facts.schema.json">Schema</a> ·
+  <a href="./site/schema/app-facts.schema.json">Schema</a> ·
   <a href="./examples/APP_FACTS.md">Example</a>
 </p>
 
@@ -93,7 +93,7 @@ It ships in **two identical flavors** so you can use whatever's already on your 
 | | Python | Node.js |
 |---|---|---|
 | **File** | [`generator/generate_app_facts.py`](./generator/generate_app_facts.py) | [`generator/generate_app_facts.js`](./generator/generate_app_facts.js) |
-| **Requires** | Python 3.8+ · `pip install pyyaml` | Node 18+ · zero npm deps |
+| **Requires** | Python 3.8+ · `pip install -r requirements.txt` | Node 18+ · zero npm deps |
 | **LLM providers** | ollama · openai · anthropic · xai · gemini | ollama · openai · anthropic · xai · gemini |
 
 Both read the same inputs, use the same prompt, and emit byte-for-byte comparable output. Pick whichever fits your toolchain — there's no functional difference.
@@ -202,6 +202,7 @@ Both versions accept the same flags:
 | `--consulting-name` | — | Display name for that credit. |
 | `--dry-run` | off | Print the result instead of writing it. |
 | `--check` | off | Re-scan inputs; exit non-zero if `APP_FACTS.md` fingerprint is missing or stale. No model required. |
+| `--no-qr` | off | Skip writing `APP_FACTS.png` (QR code next to the markdown). |
 
 ### Add a credit line
 
@@ -231,11 +232,11 @@ python3 generator/generate_app_facts.py --check
 1. **Scan.** Detect manifest files (root + one subdirectory deep), signal files, the package manager (from lockfiles), a README excerpt, CI/Docker presence, and the git remote.
 2. **Prompt.** Send that curated summary — never your source — to the chosen LLM using the shared [`generator/prompt.md`](./generator/prompt.md) (*curate, not dump*; max 8 key dependencies).
 3. **Enrich.** Autofill `repository` from `git remote` and `license` from `LICENSE*` when the model leaves them blank; coerce `status` to the allowed enum; stamp `generated.inputs_fingerprint`.
-4. **Validate + render.** Check required fields against the schema rules, write YAML frontmatter, and generate the Markdown table.
+4. **Validate + render.** Check required fields against the schema rules, write YAML frontmatter, generate the Markdown table, and write `APP_FACTS.png` — a QR code pointing at the homepage, else the GitHub `APP_FACTS.md` blob, else the repository URL.
 
 ## Validating a file
 
-The frontmatter conforms to [`schema/app-facts.schema.json`](./schema/app-facts.schema.json) (also at [appfacts.dev/schema/app-facts.schema.json](https://appfacts.dev/schema/app-facts.schema.json)). Extract the frontmatter and validate with any draft-07 validator — e.g. [`ajv`](https://ajv.js.org/) (JS) or [`jsonschema`](https://python-jsonschema.readthedocs.io/) (Python).
+The frontmatter conforms to [`site/schema/app-facts.schema.json`](./site/schema/app-facts.schema.json) (served at [appfacts.dev/schema/app-facts.schema.json](https://appfacts.dev/schema/app-facts.schema.json)). Extract the frontmatter and validate with any draft-07 validator — e.g. [`ajv`](https://ajv.js.org/) (JS) or [`jsonschema`](https://python-jsonschema.readthedocs.io/) (Python).
 
 Hand-authored skeleton: [`examples/APP_FACTS.template.md`](./examples/APP_FACTS.template.md). Spec-repo shape: [`examples/APP_FACTS.spec-tooling.md`](./examples/APP_FACTS.spec-tooling.md).
 
@@ -248,7 +249,7 @@ Hand-authored skeleton: [`examples/APP_FACTS.template.md`](./examples/APP_FACTS.
 
 ## Website
 
-The static site for [appfacts.dev](https://appfacts.dev) lives in [`site/`](./site/). On Cloudflare Pages, set the project root to `site` — no build step. The JSON Schema is published from [`site/schema/`](./site/schema/) (keep in sync with [`schema/`](./schema/)).
+The static site for [appfacts.dev](https://appfacts.dev) lives in [`site/`](./site/). On Cloudflare Pages, set the project root to `site` — no build step. The canonical JSON Schema is [`site/schema/app-facts.schema.json`](./site/schema/app-facts.schema.json).
 
 ## Contributing
 

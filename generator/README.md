@@ -10,7 +10,9 @@ Both languages share [`prompt.md`](./prompt.md) so the system prompt cannot drif
 
 ## Install
 
-    pip install -r requirements.txt
+    pip install -r requirements.txt   # PyYAML + segno (QR PNGs)
+
+Node needs no install (QR encoder is vendored under `vendor/`).
 
 ## Usage
 
@@ -28,6 +30,8 @@ With Catalyst Forge credit (recommended for CF-built projects):
       --consulting-link https://www.catalystforge.com/ \
       --consulting-name "Catalyst Forge"
 
+Writes `APP_FACTS.md` and `APP_FACTS.png` (QR). Skip the PNG with `--no-qr`.
+
 Preview without writing:
 
     python3 generate_app_facts.py --provider ollama --model llama3.1 --dry-run
@@ -44,4 +48,5 @@ CI staleness check (no model / no network):
 - `--check` re-scans and fails if that fingerprint no longer matches.
 - Generators autofill `repository` from `git remote` and `license` from `LICENSE*` when missing.
 - Model JSON is validated before write (status enum, max 8 deps, required fields).
+- `APP_FACTS.png` QR encodes homepage → else GitHub `APP_FACTS.md` → else repository → else https://appfacts.dev
 - Schema: https://appfacts.dev/schema/app-facts.schema.json

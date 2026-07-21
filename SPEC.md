@@ -41,7 +41,7 @@ The file has two parts:
 - `stack` keys are free-form (not a fixed enum) since apps vary — but common keys are `language`, `runtime`, `framework`, `styling`, `state`, `backend`, `database`, `hosting`.
 - Keep the body table short enough to read in ~10 seconds.
 - Re-generate rather than hand-maintain where possible — see `generator/`.
-- Machine validation uses [`schema/app-facts.schema.json`](./schema/app-facts.schema.json), also published at `https://appfacts.dev/schema/app-facts.schema.json`.
+- Machine validation uses [`site/schema/app-facts.schema.json`](./site/schema/app-facts.schema.json), published at `https://appfacts.dev/schema/app-facts.schema.json`.
 
 ## Staleness (`--check`)
 
