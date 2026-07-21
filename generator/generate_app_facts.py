@@ -11,7 +11,7 @@ Deps: stdlib + PyYAML + segno (see requirements.txt).
     --consulting-link https://www.catalystforge.com/ \
     --consulting-name "Catalyst Forge"
 """
-import argparse, hashlib, json, os, re, sys, datetime, subprocess
+import argparse, base64, hashlib, json, os, re, sys, datetime, subprocess, zlib
 import urllib.request
 from pathlib import Path
 
@@ -363,51 +363,129 @@ def build_frontmatter(data, generator_label, fingerprint, consulting_link=None, 
     return fm
 
 
-def render_app_facts(fm, consulting_link=None, consulting_name=None):
+VIEWER_ORIGIN = "https://appfacts.dev"
+VIEWER_PREFIX = "af1."
+MAX_VIEWER_URL_LEN = 1600
+
+
+def build_viewer_payload(fm, include_build=True, include_dep_purpose=True, max_deps=8):
+    deps = []
+    for d in (fm.get("key_dependencies") or [])[:max_deps]:
+        item = {"n": d["name"]}
+        if include_dep_purpose and d.get("purpose"):
+            item["p"] = d["purpose"]
+        deps.append(item)
+    payload = {
+        "v": 1,
+        "name": fm.get("name"),
+        "type": fm.get("type"),
+        "status": fm.get("status"),
+        "license": fm.get("license"),
+        "stack": fm.get("stack") or {},
+        "deps": deps,
+    }
+    if include_build and fm.get("build"):
+        build = {
+            k: v for k, v in fm["build"].items()
+            if v is not None and str(v).lower() != "unknown"
+        }
+        if build:
+            payload["build"] = build
+    if fm.get("homepage"):
+        payload["homepage"] = fm["homepage"]
+    if fm.get("repository"):
+        payload["repository"] = fm["repository"]
+    return payload
+
+
+def encode_viewer_hash(payload):
+    # ensure_ascii=False matches JSON.stringify (keeps UTF-8; smaller QR payloads).
+    raw = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    compressed = zlib.compress(raw, 9)
+    return VIEWER_PREFIX + base64.urlsafe_b64encode(compressed).decode("ascii").rstrip("=")
+
+
+def viewer_url_for(fm):
+    attempts = [
+        dict(include_build=True, include_dep_purpose=True, max_deps=8),
+        dict(include_build=False, include_dep_purpose=True, max_deps=8),
+        dict(include_build=False, include_dep_purpose=True, max_deps=5),
+        dict(include_build=False, include_dep_purpose=False, max_deps=5),
+        dict(include_build=False, include_dep_purpose=False, max_deps=3),
+    ]
+    url = ""
+    for opts in attempts:
+        url = f"{VIEWER_ORIGIN}/v#{encode_viewer_hash(build_viewer_payload(fm, **opts))}"
+        if len(url) <= MAX_VIEWER_URL_LEN:
+            return url
+    return url
+
+
+def _title_case(s):
+    return str(s).replace("_", " ").title()
+
+
+def render_app_facts(fm, consulting_link=None, consulting_name=None, viewer_url=None):
     frontmatter = yaml.safe_dump(fm, sort_keys=False, allow_unicode=True)
+    viewer_url = viewer_url or viewer_url_for(fm)
 
-    stack_rows = "\n".join(f"| {k.title()} | {v} |" for k, v in fm["stack"].items())
+    stack_rows = "\n".join(f"| {_title_case(k)} | {v} |" for k, v in fm["stack"].items())
     if fm["key_dependencies"]:
-        dep_rows = "\n".join(f"| `{d['name']}` | {d['purpose']} |" for d in fm["key_dependencies"])
+        dep_lines = "\n".join(f"- `{d['name']}` — {d['purpose']}" for d in fm["key_dependencies"])
     else:
-        dep_rows = "| — | — |"
-    if fm["build"]:
-        build_rows = "\n".join(f"| {k.replace('_', ' ').title()} | {v} |" for k, v in fm["build"].items())
-    else:
-        build_rows = "| — | — |"
+        dep_lines = "_None listed_"
 
-    footer = "*Generated with [AppFacts](https://appfacts.dev)*"
+    build_entries = [
+        (k, v) for k, v in (fm.get("build") or {}).items()
+        if v is not None and str(v).lower() != "unknown"
+    ]
+    if build_entries:
+        build_block = "\n### Build\n\n" + "\n".join(
+            f"- **{_title_case(k)}** — {v}" for k, v in build_entries
+        ) + "\n"
+    else:
+        build_block = ""
+
+    footer = (
+        "*Generated with [AppFacts](https://appfacts.dev) · "
+        "Scan `APP_FACTS.png` or open the [visual label][appfacts-label]*"
+    )
     if consulting_link:
-        footer = f"*Generated with [AppFacts](https://appfacts.dev) · Built by [{consulting_name or consulting_link}]({consulting_link})*"
+        footer = (
+            f"*Generated with [AppFacts](https://appfacts.dev) · "
+            f"Built by [{consulting_name or consulting_link}]({consulting_link}) · "
+            f"[Visual label][appfacts-label]*"
+        )
 
-    body = f"""# App Facts — {fm['name']}
+    links = []
+    if fm.get("homepage"):
+        links.append(f"[Homepage]({fm['homepage']})")
+    if fm.get("repository"):
+        links.append(f"[Repository]({fm['repository']})")
+    link_line = ("\n" + " · ".join(links) + "\n") if links else ""
 
-| | |
-|---|---|
-| **Type** | {fm['type']} |
-| **Status** | {fm['status']} |
-| **License** | {fm['license']} |
+    body = f"""# {fm['name']}
 
-## Stack
+`{fm['type']}` · **{fm['status']}** · {fm['license']}
+
+Curated stack label for this repository — aimed at a ~10 second read.
+
+**[Open visual label →][appfacts-label]** · or scan `APP_FACTS.png`
+{link_line}
+### Stack
 
 | Layer | Choice |
-|---|---|
+| --- | --- |
 {stack_rows}
 
-## Key Dependencies
+### Key dependencies
 
-| Package | Purpose |
-|---|---|
-{dep_rows}
-
-## Build & Test
-
-| | |
-|---|---|
-{build_rows}
-
+{dep_lines}
+{build_block}
 ---
 {footer}
+
+[appfacts-label]: {viewer_url}
 """
     return f"---\n{frontmatter}---\n\n{body}"
 
@@ -418,17 +496,8 @@ def extract_fingerprint_from_file(text):
 
 
 def qr_target_url(fm):
-    """URL encoded in APP_FACTS.png — homepage, else GitHub APP_FACTS.md, else repo, else site."""
-    if fm.get("homepage"):
-        return fm["homepage"]
-    repo = fm.get("repository")
-    if repo:
-        m = re.search(r"github\.com[/:]([^/]+/[^/#?]+)", str(repo), re.I)
-        if m:
-            name = re.sub(r"\.git$", "", m.group(1), flags=re.I)
-            return f"https://github.com/{name}/blob/main/APP_FACTS.md"
-        return repo
-    return "https://appfacts.dev"
+    """QR encodes the /v viewer URL (facts in the fragment)."""
+    return viewer_url_for(fm)
 
 
 def png_path_for(md_path: Path) -> Path:
@@ -543,8 +612,8 @@ def main():
     if errors:
         sys.exit("Validation failed:\n- " + "\n- ".join(errors))
 
-    output = render_app_facts(fm, args.consulting_link, args.consulting_name)
     qr_url = qr_target_url(fm)
+    output = render_app_facts(fm, args.consulting_link, args.consulting_name, qr_url)
     png_path = png_path_for(out_path)
 
     if args.dry_run:

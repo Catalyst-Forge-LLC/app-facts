@@ -65,6 +65,6 @@ node generate_app_facts.js /path/to/my-app --check
 - `--check` re-scans and fails if that fingerprint no longer matches.
 - Generators autofill `repository` from `git remote` and `license` from `LICENSE*` when missing.
 - Model JSON is validated before write (status enum, max 8 deps, required fields).
-- `APP_FACTS.png` QR encodes homepage → else GitHub `APP_FACTS.md` → else repository → else https://appfacts.dev
+- `APP_FACTS.png` QR encodes `https://appfacts.dev/v#af1.…` — a compressed facts payload rendered by the static viewer (no server)
 - Relative `--output` paths are resolved under `TARGET`.
 - Schema: https://appfacts.dev/schema/app-facts.schema.json
