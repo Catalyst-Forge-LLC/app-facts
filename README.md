@@ -236,6 +236,10 @@ The frontmatter conforms to [`schema/app-facts.schema.json`](./schema/app-facts.
 - [ ] A badge (`![AppFacts](...)`) linking to a rendered card
 - [ ] Editor/agent integrations that read the frontmatter directly
 
+## Website
+
+The static site for [appfacts.dev](https://appfacts.dev) lives in [`site/`](./site/). On Cloudflare Pages, set the project root (or build output directory) to `site` — no build step.
+
 ## Contributing
 
 This is **v0.1** — the spec's required fields may still shift before v1.0. Issues and proposals on field taxonomy, provider support, and output format are all welcome.
