@@ -119,6 +119,7 @@
       gap: 0.5rem 1rem;
     }
     .links a { color: var(--ember); }
+    .links .ext { color: var(--mute); }
     .links .host { color: var(--mute); font-weight: 400; }
     .trust {
       margin: 0 0 0.75rem;
@@ -208,6 +209,18 @@
       catch { return ""; }
     }
 
+    /** Repository links are clickable only for well-known code hosts. */
+    const KNOWN_REPO_HOSTS = [
+      "github.com", "gitlab.com", "bitbucket.org", "codeberg.org",
+      "git.sr.ht", "sourceforge.net", "dev.azure.com", "gitea.com",
+    ];
+    function isKnownRepoHost(href) {
+      let host;
+      try { host = new URL(href).hostname.replace(/^www\./, "").toLowerCase(); }
+      catch { return false; }
+      return KNOWN_REPO_HOSTS.some((h) => host === h || host.endsWith("." + h));
+    }
+
     function titleCase(s) {
       return String(s).replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     }
@@ -232,21 +245,23 @@
         : "";
 
       const links = [];
-      const home = safeHttpUrl(data.homepage);
       const repo = safeHttpUrl(data.repository);
-      if (home) {
+      // Only well-known code hosts become clickable; everything else is shown as text.
+      if (repo && isKnownRepoHost(repo)) {
         links.push(
-          `<a href="${esc(home)}" rel="noopener noreferrer" referrerpolicy="no-referrer" target="_blank">Homepage <span class="host">(${esc(hostLabel(home))})</span></a>`
+          `<a href="${esc(repo)}" rel="noopener noreferrer nofollow" referrerpolicy="no-referrer" target="_blank">Repository <span class="host">(${esc(hostLabel(repo))})</span></a>`
         );
+      } else if (repo) {
+        links.push(`<span class="ext">Repository: ${esc(hostLabel(repo))} <span class="host">(not a known code host — not linked)</span></span>`);
       }
-      if (repo) {
-        links.push(
-          `<a href="${esc(repo)}" rel="noopener noreferrer" referrerpolicy="no-referrer" target="_blank">Repository <span class="host">(${esc(hostLabel(repo))})</span></a>`
-        );
+      // Homepage is never a clickable link on this shared-domain viewer (anti-phishing).
+      const home = safeHttpUrl(data.homepage);
+      if (home) {
+        links.push(`<span class="ext">Homepage: ${esc(hostLabel(home))} <span class="host">(shown as text, not linked)</span></span>`);
       }
       links.push(`<a href="/">What is AppFacts?</a>`);
 
-      return `<p class="trust">Untrusted label payload from the URL — not verified by AppFacts. Treat names and outbound links as user-controlled.</p>
+      return `<p class="trust">Untrusted label payload from the URL — not verified by AppFacts. Treat all text as user-controlled. Only repository links to known code hosts are clickable; homepages are shown as text, never linked.</p>
       <article class="label" aria-label="App Facts for ${esc(data.name)}">
         <h1>${esc(String(data.name).slice(0, 120))}</h1>
         <div class="serving">Serving size: one repository · Read time: ~10 seconds</div>
