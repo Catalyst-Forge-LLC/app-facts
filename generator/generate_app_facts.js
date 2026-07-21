@@ -222,14 +222,74 @@ function resolvePaths(args) {
 
 // ---------- Repo scanning ----------
 
+/** Fingerprint excerpt limit (UTF-8 bytes). Independent of prompt read limits. */
+const FP_EXCERPT_BYTES = 8192;
+
+function normalizeNewlines(text) {
+  return String(text ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
+/** Byte-wise / code-unit compare (not locale-aware). */
+function cmpStr(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 function readText(p, limit = 6000) {
   try {
-    // Normalize newlines so JS/Python fingerprints match on Windows (CRLF) checkouts.
-    const text = fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    // Character slice for prompting only — fingerprint uses excerptUtf8 separately.
+    const text = normalizeNewlines(fs.readFileSync(p, "utf8"));
     return text.slice(0, limit);
   } catch {
     return "";
   }
+}
+
+/** LF-normalized text truncated to max UTF-8 bytes (valid UTF-8; SPEC §fingerprint). */
+function excerptUtf8(text, maxBytes = FP_EXCERPT_BYTES) {
+  const normalized = normalizeNewlines(text);
+  const buf = Buffer.from(normalized, "utf8");
+  if (buf.length <= maxBytes) return normalized;
+  let end = maxBytes;
+  while (end > 0 && (buf[end - 1] & 0xc0) === 0x80) end--;
+  if (end > 0 && (buf[end - 1] & 0xc0) === 0xc0) end--;
+  return buf.subarray(0, end).toString("utf8");
+}
+
+function readFileNormalized(p) {
+  try {
+    return normalizeNewlines(fs.readFileSync(p, "utf8"));
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * package.json fingerprint form: sorted `name@versionRange` lines (SPEC v0.1.2).
+ * Prompt summary is separate (summarizePackageJson).
+ */
+function packageJsonFingerprintForm(filePath) {
+  const raw = readFileNormalized(filePath);
+  if (!raw) return "";
+  let pkg;
+  try {
+    pkg = JSON.parse(raw);
+  } catch {
+    return excerptUtf8(raw);
+  }
+  const lines = [];
+  for (const field of ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]) {
+    const obj = pkg[field];
+    if (!obj || typeof obj !== "object") continue;
+    for (const [name, ver] of Object.entries(obj)) {
+      lines.push(`${name}@${ver}`);
+    }
+  }
+  return lines.sort(cmpStr).join("\n");
+}
+
+function manifestFingerprintForm(filePath, basename) {
+  if (basename === "package.json") return packageJsonFingerprintForm(filePath);
+  return excerptUtf8(readFileNormalized(filePath));
 }
 
 /** True for env *templates* only — never real `.env` / `.env.local` / `.env.prod`. */
@@ -305,17 +365,19 @@ function summarizePackageJson(filePath) {
   return lines.join("\n");
 }
 
+/** Collect prompt summaries + prompt-independent fingerprint forms for manifests. */
 function collectManifests(dir, labelPrefix = "") {
-  const found = {};
+  const prompt = {};
+  const fp = {};
   for (const m of MANIFESTS) {
     const p = path.join(dir, m);
     if (fs.existsSync(p) && fs.statSync(p).isFile()) {
-      found[labelPrefix + m] = m === "package.json"
-        ? summarizePackageJson(p)
-        : readText(p);
+      const label = labelPrefix + m;
+      prompt[label] = m === "package.json" ? summarizePackageJson(p) : readText(p);
+      fp[label] = manifestFingerprintForm(p, m);
     }
   }
-  return found;
+  return { prompt, fp };
 }
 
 function detectPackageManager(dir) {
@@ -363,10 +425,13 @@ function collectEnvTemplates(root) {
 function collectShapeSignals(root) {
   /** @type {Record<string, string>} */
   const configs = {};
+  /** @type {Record<string, string>} */
+  const fpConfigs = {};
   for (const name of FRAMEWORK_CONFIGS) {
     const p = path.join(root, name);
     if (fs.existsSync(p) && fs.statSync(p).isFile()) {
       configs[name] = readText(p, 2000);
+      fpConfigs[name] = excerptUtf8(readFileNormalized(p));
     }
   }
 
@@ -393,19 +458,19 @@ function collectShapeSignals(root) {
       }
     } catch { /* ignore */ }
   }
-  deploy.sort();
+  deploy.sort(cmpStr);
 
   const ciWorkflows = [];
   const wfDir = path.join(root, ".github", "workflows");
   if (fs.existsSync(wfDir) && fs.statSync(wfDir).isDirectory()) {
     try {
-      for (const name of fs.readdirSync(wfDir).sort()) {
+      for (const name of fs.readdirSync(wfDir).sort(cmpStr)) {
         if (/\.(ya?ml)$/i.test(name)) ciWorkflows.push(name);
       }
     } catch { /* ignore */ }
   }
 
-  return { configs, deploy, ciWorkflows };
+  return { configs, fpConfigs, deploy, ciWorkflows };
 }
 
 /** Census of source files by extension (recursive, bounded, deterministic). */
@@ -456,16 +521,22 @@ function detectRepoFacts(root) {
     envTemplates: {}, envKeys: [], serviceHints: [],
     shapeConfigs: {}, deploySignals: [], ciWorkflows: [],
     hasCi: false, hasDocker: false, gitRemote: null,
+    // Prompt-independent fingerprint channels (SPEC v0.1.2)
+    fpManifests: {}, fpSignals: {}, fpReadme: "", fpShapeConfigs: {},
   };
 
-  Object.assign(facts.manifests, collectManifests(root));
+  const rootManifests = collectManifests(root);
+  Object.assign(facts.manifests, rootManifests.prompt);
+  Object.assign(facts.fpManifests, rootManifests.fp);
   facts.packageManager = detectPackageManager(root);
 
-  for (const item of fs.readdirSync(root).sort()) {
+  for (const item of fs.readdirSync(root).sort(cmpStr)) {
     if (item.startsWith(".") || SKIP_DIRS.has(item)) continue;
     const sub = path.join(root, item);
     if (!fs.statSync(sub).isDirectory()) continue;
-    Object.assign(facts.manifests, collectManifests(sub, item + "/"));
+    const nested = collectManifests(sub, item + "/");
+    Object.assign(facts.manifests, nested.prompt);
+    Object.assign(facts.fpManifests, nested.fp);
     if (!facts.packageManager) facts.packageManager = detectPackageManager(sub);
   }
 
@@ -473,6 +544,7 @@ function detectRepoFacts(root) {
     const p = path.join(root, name);
     if (fs.existsSync(p) && fs.statSync(p).isFile()) {
       facts.signals[name] = readText(p, 2000);
+      facts.fpSignals[name] = excerptUtf8(readFileNormalized(p));
     }
   }
 
@@ -480,11 +552,12 @@ function detectRepoFacts(root) {
     const p = path.join(root, name);
     if (fs.existsSync(p)) {
       facts.readmeExcerpt = readText(p, 3000);
+      facts.fpReadme = excerptUtf8(readFileNormalized(p));
       break;
     }
   }
 
-  for (const item of fs.readdirSync(root).sort()) {
+  for (const item of fs.readdirSync(root).sort(cmpStr)) {
     if (item.startsWith(".") || SKIP_DIRS.has(item)) continue;
     const isDir = fs.statSync(path.join(root, item)).isDirectory();
     facts.tree.push(item + (isDir ? "/" : ""));
@@ -505,6 +578,7 @@ function detectRepoFacts(root) {
 
   const shape = collectShapeSignals(root);
   facts.shapeConfigs = shape.configs;
+  facts.fpShapeConfigs = shape.fpConfigs;
   facts.deploySignals = shape.deploy;
   facts.ciWorkflows = shape.ciWorkflows;
 
@@ -529,31 +603,41 @@ function hasEnoughEvidence(facts) {
 }
 
 function sortedObject(obj) {
-  return Object.fromEntries(Object.entries(obj).sort(([a], [b]) => a.localeCompare(b)));
+  return Object.fromEntries(Object.entries(obj).sort(([a], [b]) => cmpStr(a, b)));
 }
 
-/** Stable cross-runtime fingerprint (avoid JSON escaping differences). */
+/**
+ * Stable cross-runtime fingerprint (SPEC v0.1.2).
+ * Uses prompt-independent channels only — not LLM prompt summaries.
+ */
 function inputsFingerprint(facts) {
   const lines = [];
-  for (const [k, v] of Object.entries(sortedObject(facts.manifests))) {
+  const manifests = facts.fpManifests || {};
+  for (const [k, v] of Object.entries(sortedObject(manifests))) {
     lines.push(`manifest:${k}`, v);
   }
-  for (const [k, v] of Object.entries(sortedObject(facts.signals))) {
+  for (const [k, v] of Object.entries(sortedObject(facts.fpSignals || {}))) {
     lines.push(`signal:${k}`, v);
   }
-  lines.push("readme", facts.readmeExcerpt || "");
-  lines.push("tree", [...facts.tree].sort().join("\n"));
-  lines.push("languages", Object.entries(facts.languages || {}).map(([k, v]) => `${k}:${v}`).sort().join("\n"));
-  lines.push("fileTypes", Object.entries(facts.fileTypes || {}).map(([k, v]) => `${k}:${v}`).sort().join("\n"));
-  lines.push("notable", [...(facts.notable || [])].sort().join("\n"));
+  lines.push("readme", facts.fpReadme || "");
+  lines.push("tree", [...facts.tree].sort(cmpStr).join("\n"));
+  lines.push(
+    "languages",
+    Object.entries(facts.languages || {}).map(([k, v]) => `${k}:${v}`).sort(cmpStr).join("\n"),
+  );
+  lines.push(
+    "fileTypes",
+    Object.entries(facts.fileTypes || {}).map(([k, v]) => `${k}:${v}`).sort(cmpStr).join("\n"),
+  );
+  lines.push("notable", [...(facts.notable || [])].sort(cmpStr).join("\n"));
   for (const [k, keys] of Object.entries(sortedObject(facts.envTemplates || {}))) {
-    lines.push(`envTemplate:${k}`, [...keys].sort().join("\n"));
+    lines.push(`envTemplate:${k}`, [...keys].sort(cmpStr).join("\n"));
   }
-  for (const [k, v] of Object.entries(sortedObject(facts.shapeConfigs || {}))) {
+  for (const [k, v] of Object.entries(sortedObject(facts.fpShapeConfigs || {}))) {
     lines.push(`shapeConfig:${k}`, v);
   }
-  lines.push("deploySignals", [...(facts.deploySignals || [])].sort().join("\n"));
-  lines.push("ciWorkflows", [...(facts.ciWorkflows || [])].sort().join("\n"));
+  lines.push("deploySignals", [...(facts.deploySignals || [])].sort(cmpStr).join("\n"));
+  lines.push("ciWorkflows", [...(facts.ciWorkflows || [])].sort(cmpStr).join("\n"));
   lines.push("packageManager", facts.packageManager == null ? "" : String(facts.packageManager));
   lines.push("hasCi", facts.hasCi ? "1" : "0");
   lines.push("hasDocker", facts.hasDocker ? "1" : "0");

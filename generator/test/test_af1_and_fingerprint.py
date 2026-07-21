@@ -71,6 +71,14 @@ class Fingerprint(unittest.TestCase):
         facts = g.detect_repo_facts(FIXTURE)
         self.assertIn("STRIPE_SECRET_KEY", facts["env_templates"][".env.example"])
 
+    def test_package_json_fp_form_not_prompt(self):
+        facts = g.detect_repo_facts(FIXTURE)
+        fp_form = facts["fp_manifests"]["package.json"]
+        self.assertIn("fastify@^5.0.0", fp_form)
+        self.assertIn("zod@^3.23.0", fp_form)
+        self.assertNotIn("structured package.json summary", fp_form)
+        self.assertIn("structured package.json summary", facts["manifests"]["package.json"])
+
     def test_matches_node(self):
         py_fp = g.inputs_fingerprint(g.detect_repo_facts(FIXTURE))
         js_helper = ROOT / "test" / "print_fingerprint.js"

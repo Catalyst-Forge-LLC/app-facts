@@ -121,14 +121,67 @@ MAX_SCAN_FILES = 20000
 SYSTEM_PROMPT = (Path(__file__).with_name("prompt.md")).read_text(encoding="utf-8").strip()
 
 
+# Fingerprint excerpt limit (UTF-8 bytes). Independent of prompt read limits.
+FP_EXCERPT_BYTES = 8192
+
+
+def normalize_newlines(text: str) -> str:
+    return str(text or "").replace("\r\n", "\n").replace("\r", "\n")
+
+
 def read_text(path: Path, limit=6000):
     try:
-        # Normalize newlines so JS/Python fingerprints match across platforms.
-        text = path.read_text(encoding="utf-8", errors="ignore")
-        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        # Character slice for prompting only — fingerprint uses excerpt_utf8 separately.
+        text = normalize_newlines(path.read_text(encoding="utf-8", errors="ignore"))
         return text[:limit]
     except Exception:
         return ""
+
+
+def excerpt_utf8(text: str, max_bytes: int = FP_EXCERPT_BYTES) -> str:
+    """LF-normalized text truncated to max UTF-8 bytes (valid UTF-8; SPEC §fingerprint)."""
+    normalized = normalize_newlines(text)
+    raw = normalized.encode("utf-8")
+    if len(raw) <= max_bytes:
+        return normalized
+    end = max_bytes
+    while end > 0 and (raw[end - 1] & 0xC0) == 0x80:
+        end -= 1
+    if end > 0 and (raw[end - 1] & 0xC0) == 0xC0:
+        end -= 1
+    return raw[:end].decode("utf-8")
+
+
+def read_file_normalized(path: Path) -> str:
+    try:
+        return normalize_newlines(path.read_text(encoding="utf-8", errors="ignore"))
+    except Exception:
+        return ""
+
+
+def package_json_fingerprint_form(file_path: Path) -> str:
+    """Sorted `name@versionRange` lines (SPEC v0.1.2). Prompt summary is separate."""
+    raw = read_file_normalized(file_path)
+    if not raw:
+        return ""
+    try:
+        pkg = json.loads(raw)
+    except Exception:
+        return excerpt_utf8(raw)
+    lines = []
+    for field in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
+        obj = pkg.get(field)
+        if not isinstance(obj, dict):
+            continue
+        for name, ver in obj.items():
+            lines.append(f"{name}@{ver}")
+    return "\n".join(sorted(lines))
+
+
+def manifest_fingerprint_form(file_path: Path, basename: str) -> str:
+    if basename == "package.json":
+        return package_json_fingerprint_form(file_path)
+    return excerpt_utf8(read_file_normalized(file_path))
 
 
 def is_env_template_name(name: str) -> bool:
@@ -204,14 +257,15 @@ def summarize_package_json(file_path: Path) -> str:
 
 
 def collect_manifests(dir_path: Path, label_prefix=""):
-    found = {}
+    """Collect prompt summaries + prompt-independent fingerprint forms."""
+    prompt, fp = {}, {}
     for m in MANIFESTS:
         p = dir_path / m
         if p.is_file():
-            found[label_prefix + m] = (
-                summarize_package_json(p) if m == "package.json" else read_text(p)
-            )
-    return found
+            label = label_prefix + m
+            prompt[label] = summarize_package_json(p) if m == "package.json" else read_text(p)
+            fp[label] = manifest_fingerprint_form(p, m)
+    return prompt, fp
 
 
 def detect_package_manager(dir_path: Path):
@@ -249,10 +303,12 @@ def collect_env_templates(root: Path):
 
 def collect_shape_signals(root: Path):
     configs = {}
+    fp_configs = {}
     for name in FRAMEWORK_CONFIGS:
         p = root / name
         if p.is_file():
             configs[name] = read_text(p, 2000)
+            fp_configs[name] = excerpt_utf8(read_file_normalized(p))
 
     deploy = []
     for name in DEPLOY_FILES:
@@ -286,7 +342,12 @@ def collect_shape_signals(root: Path):
         except OSError:
             pass
 
-    return {"configs": configs, "deploy": deploy, "ci_workflows": ci_workflows}
+    return {
+        "configs": configs,
+        "fp_configs": fp_configs,
+        "deploy": deploy,
+        "ci_workflows": ci_workflows,
+    }
 
 
 def scan_languages(root: Path):
@@ -330,8 +391,12 @@ def detect_repo_facts(root: Path):
         "languages": {}, "file_types": {}, "notable": [],
         "env_templates": {}, "env_keys": [], "service_hints": [],
         "shape_configs": {}, "deploy_signals": [], "ci_workflows": [],
+        # Prompt-independent fingerprint channels (SPEC v0.1.2)
+        "fp_manifests": {}, "fp_signals": {}, "fp_readme": "", "fp_shape_configs": {},
     }
-    facts["manifests"].update(collect_manifests(root))
+    prompt, fp = collect_manifests(root)
+    facts["manifests"].update(prompt)
+    facts["fp_manifests"].update(fp)
     facts["package_manager"] = detect_package_manager(root)
 
     # Sort by name string (case-sensitive). Path ordering on Windows is case-insensitive.
@@ -340,7 +405,9 @@ def detect_repo_facts(root: Path):
             continue
         if not item.is_dir():
             continue
-        facts["manifests"].update(collect_manifests(item, item.name + "/"))
+        prompt, fp = collect_manifests(item, item.name + "/")
+        facts["manifests"].update(prompt)
+        facts["fp_manifests"].update(fp)
         if not facts["package_manager"]:
             facts["package_manager"] = detect_package_manager(item)
 
@@ -348,11 +415,13 @@ def detect_repo_facts(root: Path):
         p = root / name
         if p.is_file():
             facts["signals"][name] = read_text(p, 2000)
+            facts["fp_signals"][name] = excerpt_utf8(read_file_normalized(p))
 
     for readme_name in ("README.md", "readme.md", "Readme.md"):
         p = root / readme_name
         if p.exists():
             facts["readme_excerpt"] = read_text(p, 3000)
+            facts["fp_readme"] = excerpt_utf8(read_file_normalized(p))
             break
     for item in sorted(root.iterdir(), key=lambda p: p.name):
         if item.name.startswith(".") or item.name in SKIP_DIRS:
@@ -372,6 +441,7 @@ def detect_repo_facts(root: Path):
 
     shape = collect_shape_signals(root)
     facts["shape_configs"] = shape["configs"]
+    facts["fp_shape_configs"] = shape["fp_configs"]
     facts["deploy_signals"] = shape["deploy"]
     facts["ci_workflows"] = shape["ci_workflows"]
 
@@ -391,20 +461,20 @@ def has_enough_evidence(facts):
 
 
 def inputs_fingerprint(facts):
-    """Stable cross-runtime fingerprint (avoid JSON escaping differences)."""
+    """Stable cross-runtime fingerprint (SPEC v0.1.2). Prompt-independent channels only."""
     lines = []
-    for k, v in sorted(facts["manifests"].items()):
+    for k, v in sorted(facts.get("fp_manifests", {}).items()):
         lines.extend([f"manifest:{k}", v])
-    for k, v in sorted(facts["signals"].items()):
+    for k, v in sorted(facts.get("fp_signals", {}).items()):
         lines.extend([f"signal:{k}", v])
-    lines.extend(["readme", facts.get("readme_excerpt") or ""])
+    lines.extend(["readme", facts.get("fp_readme") or ""])
     lines.extend(["tree", "\n".join(sorted(facts["tree"]))])
     lines.extend(["languages", "\n".join(sorted(f"{k}:{v}" for k, v in facts.get("languages", {}).items()))])
     lines.extend(["fileTypes", "\n".join(sorted(f"{k}:{v}" for k, v in facts.get("file_types", {}).items()))])
     lines.extend(["notable", "\n".join(sorted(facts.get("notable", [])))])
     for k, keys in sorted(facts.get("env_templates", {}).items()):
         lines.extend([f"envTemplate:{k}", "\n".join(sorted(keys))])
-    for k, v in sorted(facts.get("shape_configs", {}).items()):
+    for k, v in sorted(facts.get("fp_shape_configs", {}).items()):
         lines.extend([f"shapeConfig:{k}", v])
     lines.extend(["deploySignals", "\n".join(sorted(facts.get("deploy_signals", [])))])
     lines.extend(["ciWorkflows", "\n".join(sorted(facts.get("ci_workflows", [])))])

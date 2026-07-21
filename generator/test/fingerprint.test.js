@@ -34,6 +34,17 @@ describe("inputs_fingerprint", () => {
     assert.ok(facts.envKeys.includes("DATABASE_URL"));
   });
 
+  it("uses package.json name@versionRange form (not the prompt summary)", () => {
+    const facts = detectRepoFacts(FIXTURE);
+    const fpForm = facts.fpManifests["package.json"];
+    assert.ok(fpForm.includes("fastify@^5.0.0"));
+    assert.ok(fpForm.includes("zod@^3.23.0"));
+    assert.ok(fpForm.includes("vitest@^2.0.0"));
+    // Prompt summary must not leak into the fingerprint channel
+    assert.ok(!fpForm.includes("structured package.json summary"));
+    assert.ok(facts.manifests["package.json"].includes("structured package.json summary"));
+  });
+
   it("matches the Python generator on the same fixture", () => {
     const jsFp = inputsFingerprint(detectRepoFacts(FIXTURE));
     assert.equal(pythonFingerprint(FIXTURE), jsFp);

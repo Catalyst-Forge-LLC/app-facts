@@ -72,7 +72,7 @@ node generate_app_facts.js /path/to/my-app --check
 - Relative `--output` paths are resolved under `TARGET`.
 - Schema: https://appfacts.dev/schema/app-facts.schema.json
 - Compact `/v` payload: [`../SPEC-af1.md`](../SPEC-af1.md)
-- Fingerprint algorithm: [`../SPEC.md`](../SPEC.md) (Fingerprint canonicalization)
+- Fingerprint algorithm: [`../SPEC.md`](../SPEC.md) v0.1.2 (prompt-independent; `package.json` → sorted `name@versionRange`)
 
 ## Tests
 
