@@ -982,7 +982,7 @@ def render_app_facts(fm, consulting_link=None, consulting_name=None, viewer_url=
 
 `{fm['type']}` · **{fm['status']}** · {fm['license']}
 
-Curated stack label for this repository — aimed at a ~10 second read.
+Curated stack label for this repository — aimed at an under-a-minute skim.
 
 **[Open visual label →][appfacts-label]** · or scan `APP_FACTS.png`
 {link_line}

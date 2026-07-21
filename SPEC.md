@@ -42,7 +42,7 @@ The file has two parts:
 - `services` is for hosted integrations (Stripe, PostHog, Resend, …), separate from package deps.
 - `stack` keys are free-form (not a fixed enum) since apps vary — but common keys are `language`, `runtime`, `framework`, `styling`, `state`, `backend`, `database`, `hosting`, plus when evidenced `ai`, `billing`, `analytics`, `email`, `scraping`, `auth`.
 - Generators may read `.env.example`-style templates for **key names only**; they must never read real `.env` files.
-- Keep the body table short enough to read in ~10 seconds.
+- Keep the body short enough to skim in under a minute.
 - Re-generate rather than hand-maintain where possible — see `generator/`.
 - Machine validation uses [`site/schema/app-facts.schema.json`](./site/schema/app-facts.schema.json), published at `https://appfacts.dev/schema/app-facts.schema.json`.
 

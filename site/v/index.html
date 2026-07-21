@@ -283,7 +283,7 @@
       return `<p class="trust">Untrusted label payload from the URL — not verified by AppFacts. Treat all text as user-controlled. Only repository links to known code hosts are clickable; homepages are shown as text, never linked.</p>
       <article class="label" aria-label="App Facts for ${esc(data.name)}">
         <h1>${esc(String(data.name).slice(0, 120))}</h1>
-        <div class="serving">Serving size: one repository · Read time: ~10 seconds</div>
+        <div class="serving">Serving size: one repository · Read time: under a minute</div>
         <div class="meta">
           <span><strong>Type</strong> ${esc(String(data.type ?? "").slice(0, 80))}</span>
           <span><strong>Status</strong> ${esc(String(data.status ?? "").slice(0, 40))}</span>

@@ -6,7 +6,7 @@
 
 <p align="center">
   A tiny, standardized <code>APP_FACTS.md</code> that lives next to your <code>README.md</code>
-  and answers one question in ten seconds: <em>what is this app built from?</em>
+  and answers one question in under a minute: <em>what is this app built from?</em>
 </p>
 
 <p align="center">
