@@ -34,7 +34,7 @@ generated:
   generator: appfacts-cli v0.1.0 (claude-sonnet-4-6)
 credits:
   generated_with: https://appfacts.dev
-  built_by: "Your Consulting Co. — https://yourconsulting.example"
+  built_by: "Catalyst Forge — https://www.catalystforge.com/"
 ---
 
 # App Facts — Acme Dashboard
@@ -77,4 +77,4 @@ credits:
 | Node required | >=20 |
 
 ---
-*Generated with [AppFacts](https://appfacts.dev) · Built by [Your Consulting Co.](https://yourconsulting.example)*
+*Generated with [AppFacts](https://appfacts.dev) · Built by [Catalyst Forge](https://www.catalystforge.com/)*
