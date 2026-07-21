@@ -16,6 +16,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { execSync } = require("child_process");
+const { writeQrPng } = require("./qr.js");
 
 const MANIFESTS = [
   "package.json", "pyproject.toml", "Cargo.toml", "go.mod",
@@ -43,7 +44,7 @@ function parseArgs(argv) {
   const args = {
     path: ".", output: null, provider: "ollama", model: null,
     ollamaHost: "http://localhost:11434",
-    consultingLink: null, consultingName: null, dryRun: false, check: false,
+    consultingLink: null, consultingName: null, dryRun: false, check: false, noQr: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -57,6 +58,7 @@ function parseArgs(argv) {
     else if (a === "--consulting-name") args.consultingName = next();
     else if (a === "--dry-run") args.dryRun = true;
     else if (a === "--check") args.check = true;
+    else if (a === "--no-qr") args.noQr = true;
   }
   if (!args.check && !args.model) {
     console.error("Missing required --model <name> (or pass --check)");
@@ -499,6 +501,24 @@ function extractFingerprintFromFile(text) {
   return m ? m[1] : null;
 }
 
+/** URL encoded in APP_FACTS.png — homepage, else GitHub APP_FACTS.md, else repo, else site. */
+function qrTargetUrl(fm) {
+  if (fm.homepage) return fm.homepage;
+  if (fm.repository) {
+    const m = String(fm.repository).match(/github\.com[/:]([^/]+\/[^/#?]+)/i);
+    if (m) {
+      const repo = m[1].replace(/\.git$/i, "");
+      return `https://github.com/${repo}/blob/main/APP_FACTS.md`;
+    }
+    return fm.repository;
+  }
+  return "https://appfacts.dev";
+}
+
+function pngPathFor(mdPath) {
+  return /\.md$/i.test(mdPath) ? mdPath.replace(/\.md$/i, ".png") : mdPath + ".png";
+}
+
 function runCheck(outPath, fingerprint) {
   if (!fs.existsSync(outPath)) {
     console.error(`APP_FACTS.md missing at ${outPath}`);
@@ -571,12 +591,19 @@ async function main() {
   }
 
   const output = renderAppFacts(fm, args.consultingLink, args.consultingName);
+  const qrUrl = qrTargetUrl(fm);
+  const pngPath = pngPathFor(outPath);
 
   if (args.dryRun) {
     console.log(output);
+    if (!args.noQr) console.error(`Would write QR PNG -> ${pngPath}\nQR target: ${qrUrl}`);
   } else {
     fs.writeFileSync(outPath, output);
     console.log(`Wrote ${outPath} (fingerprint ${fingerprint})`);
+    if (!args.noQr) {
+      writeQrPng(qrUrl, pngPath);
+      console.log(`Wrote ${pngPath} (QR -> ${qrUrl})`);
+    }
   }
 }
 
