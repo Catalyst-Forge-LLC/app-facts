@@ -119,6 +119,16 @@
       gap: 0.5rem 1rem;
     }
     .links a { color: var(--ember); }
+    .links .host { color: var(--mute); font-weight: 400; }
+    .trust {
+      margin: 0 0 0.75rem;
+      padding: 0.55rem 0.7rem;
+      font-size: 0.68rem;
+      line-height: 1.4;
+      color: #c9d3de;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
     .msg {
       color: #dce5ef;
       background: rgba(255,255,255,0.04);
@@ -182,21 +192,37 @@
         .replace(/"/g, "&quot;");
     }
 
+    /** Only http(s) links become <a href>. Blocks javascript:/data:/etc. */
+    function safeHttpUrl(raw) {
+      if (raw == null || typeof raw !== "string") return null;
+      const trimmed = raw.trim();
+      let u;
+      try { u = new URL(trimmed); } catch { return null; }
+      if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+      if (trimmed.length > 2048) return null;
+      return u.href;
+    }
+
+    function hostLabel(href) {
+      try { return new URL(href).hostname.replace(/^www\./, ""); }
+      catch { return ""; }
+    }
+
     function titleCase(s) {
       return String(s).replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     }
 
     function renderLabel(data) {
       const stack = Object.entries(data.stack || {});
-      const deps = data.deps || [];
-      const build = Object.entries(data.build || {});
-      const stackHtml = stack.map(([k, v], i) => {
-        const thick = i === stack.length - 1 ? " thick" : "";
+      const deps = Array.isArray(data.deps) ? data.deps.slice(0, 12) : [];
+      const build = Object.entries(data.build || {}).slice(0, 12);
+      const stackHtml = stack.slice(0, 16).map(([k, v], i, arr) => {
+        const thick = i === arr.length - 1 ? " thick" : "";
         return `<div class="row${thick}"><strong>${esc(titleCase(k))}</strong><span>${esc(v)}</span></div>`;
       }).join("");
       const depsHtml = deps.length
         ? `<ul class="deps">${deps.map((d) =>
-            `<li><code>${esc(d.n)}</code>${d.p ? ` — ${esc(d.p)}` : ""}</li>`
+            `<li><code>${esc(d && d.n)}</code>${d && d.p ? ` — ${esc(d.p)}` : ""}</li>`
           ).join("")}</ul>`
         : `<div class="row">None listed</div>`;
       const buildHtml = build.length
@@ -204,18 +230,30 @@
             `<div class="row"><strong>${esc(titleCase(k))}</strong><span>${esc(v)}</span></div>`
           ).join("")}</div>`
         : "";
+
       const links = [];
-      if (data.homepage) links.push(`<a href="${esc(data.homepage)}">Homepage</a>`);
-      if (data.repository) links.push(`<a href="${esc(data.repository)}">Repository</a>`);
+      const home = safeHttpUrl(data.homepage);
+      const repo = safeHttpUrl(data.repository);
+      if (home) {
+        links.push(
+          `<a href="${esc(home)}" rel="noopener noreferrer" referrerpolicy="no-referrer" target="_blank">Homepage <span class="host">(${esc(hostLabel(home))})</span></a>`
+        );
+      }
+      if (repo) {
+        links.push(
+          `<a href="${esc(repo)}" rel="noopener noreferrer" referrerpolicy="no-referrer" target="_blank">Repository <span class="host">(${esc(hostLabel(repo))})</span></a>`
+        );
+      }
       links.push(`<a href="/">What is AppFacts?</a>`);
 
-      return `<article class="label" aria-label="App Facts for ${esc(data.name)}">
-        <h1>${esc(data.name)}</h1>
+      return `<p class="trust">Untrusted label payload from the URL — not verified by AppFacts. Treat names and outbound links as user-controlled.</p>
+      <article class="label" aria-label="App Facts for ${esc(data.name)}">
+        <h1>${esc(String(data.name).slice(0, 120))}</h1>
         <div class="serving">Serving size: one repository · Read time: ~10 seconds</div>
         <div class="meta">
-          <span><strong>Type</strong> ${esc(data.type)}</span>
-          <span><strong>Status</strong> ${esc(data.status)}</span>
-          <span><strong>License</strong> ${esc(data.license)}</span>
+          <span><strong>Type</strong> ${esc(String(data.type ?? "").slice(0, 80))}</span>
+          <span><strong>Status</strong> ${esc(String(data.status ?? "").slice(0, 40))}</span>
+          <span><strong>License</strong> ${esc(String(data.license ?? "").slice(0, 40))}</span>
         </div>
         ${stackHtml}
         <div class="section"><b>Key dependencies</b>${depsHtml}</div>
