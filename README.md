@@ -242,7 +242,7 @@ python3 generator/generate_app_facts.py TARGET --check
 1. **Scan.** Detect manifest files (root + one subdirectory deep), signal files, the package manager (from lockfiles), a README excerpt, CI/Docker presence, and the git remote.
 2. **Prompt.** Send that curated summary — never your source — to the chosen LLM using the shared [`generator/prompt.md`](./generator/prompt.md) (*curate, not dump*; max 8 key dependencies).
 3. **Enrich.** Autofill `repository` from `git remote` and `license` from `LICENSE*` when the model leaves them blank; coerce `status` to the allowed enum; stamp `generated.inputs_fingerprint`.
-4. **Validate + render.** Check required fields against the schema rules, write YAML frontmatter, generate the Markdown table, and write `APP_FACTS.png` — a QR code pointing at the homepage, else the GitHub `APP_FACTS.md` blob, else the repository URL.
+4. **Validate + render.** Check required fields against the schema rules, write YAML frontmatter, a denser Markdown body (with a link to the visual label), and `APP_FACTS.png` — a QR code to `https://appfacts.dev/v#…` carrying a compressed facts payload (no backend).
 
 ## Validating a file
 
@@ -259,7 +259,15 @@ Hand-authored skeleton: [`examples/APP_FACTS.template.md`](./examples/APP_FACTS.
 
 ## Website
 
-The static site for [appfacts.dev](https://appfacts.dev) lives in [`site/`](./site/). On Cloudflare Pages, set the project root to `site` — no build step. The canonical JSON Schema is [`site/schema/app-facts.schema.json`](./site/schema/app-facts.schema.json).
+The static site for [appfacts.dev](https://appfacts.dev) lives in [`site/`](./site/). On Cloudflare Pages, set the project root to `site` — no build step.
+
+| Path | Purpose |
+|---|---|
+| [`site/index.html`](./site/index.html) | Marketing / docs landing |
+| [`site/v/index.html`](./site/v/index.html) | Portable label viewer (`/v#af1.…`) |
+| [`site/schema/app-facts.schema.json`](./site/schema/app-facts.schema.json) | Canonical JSON Schema |
+
+YAML frontmatter in `APP_FACTS.md` is the machine source of truth (and may look plain in some Markdown previews). The human skim is the body + the `/v` visual label from the QR.
 
 ## Contributing
 

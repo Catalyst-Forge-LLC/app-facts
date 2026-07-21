@@ -47,6 +47,14 @@ The file has two parts:
 
 Generators may write `generated.inputs_fingerprint`. Running with `--check` re-scans the repo and exits non-zero if the fingerprint no longer matches (or the file / fingerprint is missing). Intended for CI.
 
+## Portable viewer (`/v`)
+
+Generators may also emit `APP_FACTS.png`, a QR code whose URL is:
+
+`https://appfacts.dev/v#af1.<base64url(zlib(json))>`
+
+The JSON is a compact subset of the frontmatter (`name`, `type`, `status`, `license`, `stack`, `deps`, optional `build` / links). The static page at `/v` inflates the fragment and renders a nutrition-label UI. No backend storage.
+
 ## Versioning
 
 This is v0.1 — the required-field list may still change before v1.0. Files should declare `app_facts_version` so tooling can handle multiple spec versions.

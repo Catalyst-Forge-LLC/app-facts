@@ -17,6 +17,7 @@ const path = require("path");
 const crypto = require("crypto");
 const { execSync } = require("child_process");
 const { writeQrPng } = require("./qr.js");
+const { viewerUrlFor } = require("./viewer_codec.js");
 
 const MANIFESTS = [
   "package.json", "pyproject.toml", "Cargo.toml", "go.mod",
@@ -510,51 +511,59 @@ function buildFrontmatter(data, generatorLabel, fingerprint, consultingLink, con
   return fm;
 }
 
-function renderAppFacts(fm, consultingLink, consultingName) {
+function titleCase(s) {
+  return String(s).replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function renderAppFacts(fm, consultingLink, consultingName, viewerUrl) {
   const frontmatter = toYaml(fm);
 
   const stackRows = Object.entries(fm.stack)
-    .map(([k, v]) => `| ${k[0].toUpperCase() + k.slice(1)} | ${v} |`).join("\n");
-  const depRows = (fm.key_dependencies.length
-    ? fm.key_dependencies.map(d => `| \`${d.name}\` | ${d.purpose} |`).join("\n")
-    : "| — | — |");
-  const buildRows = Object.entries(fm.build)
-    .map(([k, v]) => `| ${k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())} | ${v} |`).join("\n")
-    || "| — | — |";
+    .map(([k, v]) => `| ${titleCase(k)} | ${v} |`)
+    .join("\n");
 
-  let footer = "*Generated with [AppFacts](https://appfacts.dev)*";
+  const depLines = (fm.key_dependencies || []).length
+    ? fm.key_dependencies.map((d) => `- \`${d.name}\` — ${d.purpose}`).join("\n")
+    : "_None listed_";
+
+  const buildEntries = Object.entries(fm.build || {})
+    .filter(([, v]) => v != null && String(v).toLowerCase() !== "unknown");
+  const buildBlock = buildEntries.length
+    ? `\n### Build\n\n${buildEntries.map(([k, v]) => `- **${titleCase(k)}** — ${v}`).join("\n")}\n`
+    : "";
+
+  let footer = `*Generated with [AppFacts](https://appfacts.dev) · Scan \`APP_FACTS.png\` or open the [visual label][appfacts-label]*`;
   if (consultingLink) {
-    footer = `*Generated with [AppFacts](https://appfacts.dev) · Built by [${consultingName || consultingLink}](${consultingLink})*`;
+    footer = `*Generated with [AppFacts](https://appfacts.dev) · Built by [${consultingName || consultingLink}](${consultingLink}) · [Visual label][appfacts-label]*`;
   }
 
-  const body = `# App Facts — ${fm.name}
+  const links = [];
+  if (fm.homepage) links.push(`[Homepage](${fm.homepage})`);
+  if (fm.repository) links.push(`[Repository](${fm.repository})`);
+  const linkLine = links.length ? `\n${links.join(" · ")}\n` : "";
 
-| | |
-|---|---|
-| **Type** | ${fm.type} |
-| **Status** | ${fm.status} |
-| **License** | ${fm.license} |
+  const body = `# ${fm.name}
 
-## Stack
+\`${fm.type}\` · **${fm.status}** · ${fm.license}
+
+Curated stack label for this repository — aimed at a ~10 second read.
+
+**[Open visual label →][appfacts-label]** · or scan \`APP_FACTS.png\`
+${linkLine}
+### Stack
 
 | Layer | Choice |
-|---|---|
+| --- | --- |
 ${stackRows}
 
-## Key Dependencies
+### Key dependencies
 
-| Package | Purpose |
-|---|---|
-${depRows}
-
-## Build & Test
-
-| | |
-|---|---|
-${buildRows}
-
+${depLines}
+${buildBlock}
 ---
 ${footer}
+
+[appfacts-label]: ${viewerUrl}
 `;
 
   return `---\n${frontmatter}---\n\n${body}`;
@@ -565,18 +574,9 @@ function extractFingerprintFromFile(text) {
   return m ? m[1] : null;
 }
 
-/** URL encoded in APP_FACTS.png — homepage, else GitHub APP_FACTS.md, else repo, else site. */
+/** QR encodes the /v viewer URL (facts in the fragment), with URL fallbacks if needed. */
 function qrTargetUrl(fm) {
-  if (fm.homepage) return fm.homepage;
-  if (fm.repository) {
-    const m = String(fm.repository).match(/github\.com[/:]([^/]+\/[^/#?]+)/i);
-    if (m) {
-      const repo = m[1].replace(/\.git$/i, "");
-      return `https://github.com/${repo}/blob/main/APP_FACTS.md`;
-    }
-    return fm.repository;
-  }
-  return "https://appfacts.dev";
+  return viewerUrlFor(fm);
 }
 
 function pngPathFor(mdPath) {
@@ -653,8 +653,8 @@ async function main() {
     process.exit(1);
   }
 
-  const output = renderAppFacts(fm, args.consultingLink, args.consultingName);
   const qrUrl = qrTargetUrl(fm);
+  const output = renderAppFacts(fm, args.consultingLink, args.consultingName, qrUrl);
   const pngPath = pngPathFor(outPath);
 
   if (args.dryRun) {
