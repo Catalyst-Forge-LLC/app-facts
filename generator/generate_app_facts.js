@@ -34,6 +34,9 @@ const SIGNAL_FILES = [
   "SPEC.md", "CONTRIBUTING.md", "Makefile", "Justfile",
 ];
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", "venv", ".venv", "__pycache__", "target"]);
+// Vendored/third-party code is excluded from the language census only (it is not
+// the project's own code). Keep in sync with the Python generator.
+const VENDOR_DIRS = new Set(["vendor", "vendored", "third_party", "third-party", "bower_components", "external"]);
 const STATUS_ENUM = new Set(["active", "maintenance", "archived", "experimental"]);
 const MAX_DEPS = 8;
 
@@ -193,7 +196,7 @@ function scanLanguages(root) {
     }
     entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     for (const ent of entries) {
-      if (ent.name.startsWith(".") || SKIP_DIRS.has(ent.name)) continue;
+      if (ent.name.startsWith(".") || SKIP_DIRS.has(ent.name) || VENDOR_DIRS.has(ent.name)) continue;
       const relPath = rel ? `${rel}/${ent.name}` : ent.name;
       if (ent.isDirectory()) {
         walk(path.join(dir, ent.name), relPath);

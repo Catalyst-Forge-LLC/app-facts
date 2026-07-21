@@ -35,6 +35,9 @@ SIGNAL_FILES = [
     "SPEC.md", "CONTRIBUTING.md", "Makefile", "Justfile",
 ]
 SKIP_DIRS = {"node_modules", ".git", "dist", "build", "venv", ".venv", "__pycache__", "target"}
+# Vendored/third-party code is excluded from the language census only (it is not
+# the project's own code). Keep in sync with the JS generator.
+VENDOR_DIRS = {"vendor", "vendored", "third_party", "third-party", "bower_components", "external"}
 STATUS_ENUM = {"active", "maintenance", "archived", "experimental"}
 MAX_DEPS = 8
 
@@ -93,7 +96,7 @@ def scan_languages(root: Path):
         except OSError:
             return
         for ent in entries:
-            if ent.name.startswith(".") or ent.name in SKIP_DIRS:
+            if ent.name.startswith(".") or ent.name in SKIP_DIRS or ent.name in VENDOR_DIRS:
                 continue
             rel_path = f"{rel}/{ent.name}" if rel else ent.name
             if ent.is_dir():
