@@ -3,11 +3,11 @@
 generate_app_facts.py — draft an APP_FACTS.md for a repo using an LLM.
 
 Providers: ollama (local), openai, anthropic, xai, gemini.
-Only stdlib + PyYAML required (see requirements.txt).
+Deps: stdlib + PyYAML + segno (see requirements.txt).
 
-  python3 generate_app_facts.py --provider ollama --model llama3.1
-  python3 generate_app_facts.py --check
-  python3 generate_app_facts.py --provider ollama --model llama3.1 \
+  python3 generate_app_facts.py /path/to/project --provider ollama --model llama3.1
+  python3 generate_app_facts.py --path /path/to/project --check
+  python3 generate_app_facts.py . --provider ollama --model llama3.1 \
     --consulting-link https://www.catalystforge.com/ \
     --consulting-name "Catalyst Forge"
 """
@@ -457,10 +457,39 @@ def run_check(out_path: Path, fingerprint: str):
     print(f"OK - fingerprint {fingerprint} matches {out_path}")
 
 
+def resolve_paths(target, path_flag, output_flag):
+    """Resolve scan root + output. Relative --output is relative to TARGET."""
+    if target and path_flag:
+        if Path(target).expanduser().resolve() != Path(path_flag).expanduser().resolve():
+            sys.exit("Pass either a positional TARGET or --path, not both with different values")
+    root = Path(target or path_flag or ".").expanduser().resolve()
+    if not root.is_dir():
+        sys.exit(f"Target is not a directory: {root}")
+    if output_flag:
+        out = Path(output_flag).expanduser()
+        out_path = out.resolve() if out.is_absolute() else (root / out).resolve()
+    else:
+        out_path = root / "APP_FACTS.md"
+    return root, out_path
+
+
 def main():
-    ap = argparse.ArgumentParser(description="Generate APP_FACTS.md for a repo")
-    ap.add_argument("--path", default=".", help="Repo path (default: current dir)")
-    ap.add_argument("--output", default=None, help="Output path (default: <path>/APP_FACTS.md)")
+    ap = argparse.ArgumentParser(
+        description="Generate APP_FACTS.md for a repo",
+        epilog="Example: %(prog)s ~/code/my-app --provider ollama --model llama3.1",
+    )
+    ap.add_argument(
+        "target", nargs="?", default=None,
+        help="Repo to scan (default: --path or current directory)",
+    )
+    ap.add_argument(
+        "--path", default=None,
+        help="Repo to scan (alternative to positional TARGET)",
+    )
+    ap.add_argument(
+        "--output", default=None,
+        help="Output markdown path (default: <TARGET>/APP_FACTS.md; relative paths are under TARGET)",
+    )
     ap.add_argument("--provider", choices=PROVIDERS.keys(), default="ollama")
     ap.add_argument("--model", default=None, help="Model name for chosen provider")
     ap.add_argument("--ollama-host", default="http://localhost:11434")
@@ -475,8 +504,7 @@ def main():
     if not args.check and not args.model:
         ap.error("--model is required unless --check is set")
 
-    root = Path(args.path).resolve()
-    out_path = Path(args.output) if args.output else root / "APP_FACTS.md"
+    root, out_path = resolve_paths(args.target, args.path, args.output)
 
     facts = detect_repo_facts(root)
     if not has_enough_evidence(facts):

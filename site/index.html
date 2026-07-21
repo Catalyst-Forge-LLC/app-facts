@@ -467,13 +467,14 @@ generated:
         </p>
         <div class="split">
           <pre># Node 18+ — zero npm deps
-node generator/generate_app_facts.js \
-  --provider ollama --model llama3.1
+# Pass the project to scan (script location ≠ target):
+node /path/to/app-facts/generator/generate_app_facts.js \
+  /path/to/my-app --provider ollama --model llama3.1
 
 # Python 3.8+
-pip install -r generator/requirements.txt
-python3 generator/generate_app_facts.py \
-  --provider ollama --model llama3.1</pre>
+pip install -r /path/to/app-facts/generator/requirements.txt
+python3 /path/to/app-facts/generator/generate_app_facts.py \
+  /path/to/my-app --provider ollama --model llama3.1</pre>
           <div class="prose">
             <p>
               Optional credit footer for consultancies:

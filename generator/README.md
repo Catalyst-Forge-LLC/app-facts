@@ -1,45 +1,62 @@
 # AppFacts generator
 
-Scans your repo's manifest files (`package.json`, `pyproject.toml`, `requirements.txt`,
+Scans a target repo's manifest files (`package.json`, `pyproject.toml`, `requirements.txt`,
 `Cargo.toml`, `go.mod`, …) at the root or one level down, plus signal files
-(`LICENSE`, `SPEC.md`, …) and your README, sends a curated summary to an LLM, and
-writes an `APP_FACTS.md`. Works for docs/spec/tooling repos that have no package
-manifest, as long as a README or signal file is present.
+(`LICENSE`, `SPEC.md`, …) and the README, sends a curated summary to an LLM, and
+writes `APP_FACTS.md` (+ `APP_FACTS.png`). Works for docs/spec/tooling repos that have
+no package manifest, as long as a README or signal file is present.
 
 Both languages share [`prompt.md`](./prompt.md) so the system prompt cannot drift.
 
+The **script directory** and the **target project** are independent. Always pass the
+project to scan as a positional `TARGET` (or `--path`).
+
 ## Install
 
-    pip install -r requirements.txt   # PyYAML + segno (QR PNGs)
+```bash
+pip install -r requirements.txt   # PyYAML + segno (QR PNGs)
+```
 
 Node needs no install (QR encoder is vendored under `vendor/`).
 
 ## Usage
 
-Local, via Ollama (no API key, nothing leaves your machine):
+From this `generator/` folder, against another project:
 
-    python3 generate_app_facts.py --provider ollama --model llama3.1
+```bash
+python3 generate_app_facts.py /path/to/my-app --provider ollama --model llama3.1
+node generate_app_facts.js /path/to/my-app --provider ollama --model llama3.1
+```
 
-With Catalyst Forge credit (recommended for CF-built projects):
+From the app-facts repo root (same idea — pass the target explicitly):
 
-    python3 generate_app_facts.py --provider ollama --model llama3.1 \
-      --consulting-link https://www.catalystforge.com/ \
-      --consulting-name "Catalyst Forge"
+```bash
+python3 generator/generate_app_facts.py /path/to/my-app --provider ollama --model llama3.1
+node generator/generate_app_facts.js /path/to/my-app --provider ollama --model llama3.1
+```
 
-    node generate_app_facts.js --provider ollama --model llama3.1 \
-      --consulting-link https://www.catalystforge.com/ \
-      --consulting-name "Catalyst Forge"
+Dogfood this repo:
 
-Writes `APP_FACTS.md` and `APP_FACTS.png` (QR). Skip the PNG with `--no-qr`.
+```bash
+python3 generator/generate_app_facts.py . --provider ollama --model llama3.1 \
+  --consulting-link https://www.catalystforge.com/ \
+  --consulting-name "Catalyst Forge"
+```
+
+Writes `<TARGET>/APP_FACTS.md` and `<TARGET>/APP_FACTS.png`. Skip the PNG with `--no-qr`.
 
 Preview without writing:
 
-    python3 generate_app_facts.py --provider ollama --model llama3.1 --dry-run
+```bash
+python3 generate_app_facts.py /path/to/my-app --provider ollama --model llama3.1 --dry-run
+```
 
 CI staleness check (no model / no network):
 
-    python3 generate_app_facts.py --check
-    node generate_app_facts.js --check
+```bash
+python3 generate_app_facts.py /path/to/my-app --check
+node generate_app_facts.js /path/to/my-app --check
+```
 
 ## Notes
 
@@ -49,4 +66,5 @@ CI staleness check (no model / no network):
 - Generators autofill `repository` from `git remote` and `license` from `LICENSE*` when missing.
 - Model JSON is validated before write (status enum, max 8 deps, required fields).
 - `APP_FACTS.png` QR encodes homepage → else GitHub `APP_FACTS.md` → else repository → else https://appfacts.dev
+- Relative `--output` paths are resolved under `TARGET`.
 - Schema: https://appfacts.dev/schema/app-facts.schema.json
