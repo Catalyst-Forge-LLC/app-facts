@@ -4,9 +4,15 @@ generate_app_facts.py — draft an APP_FACTS.md for a repo using an LLM.
 
 Providers: ollama (local), openai, anthropic, xai, gemini.
 Only stdlib + PyYAML required (see requirements.txt).
+
+  python3 generate_app_facts.py --provider ollama --model llama3.1
+  python3 generate_app_facts.py --check
+  python3 generate_app_facts.py --provider ollama --model llama3.1 \
+    --consulting-link https://www.catalystforge.com/ \
+    --consulting-name "Catalyst Forge"
 """
-import argparse, json, os, re, sys, datetime, subprocess
-import urllib.request, urllib.error
+import argparse, hashlib, json, os, re, sys, datetime, subprocess
+import urllib.request
 from pathlib import Path
 
 try:
@@ -24,17 +30,23 @@ LOCKFILE_PM = {
     "poetry.lock": "poetry", "Cargo.lock": "cargo", "go.sum": "go modules",
     "Gemfile.lock": "bundler", "composer.lock": "composer", "Pipfile.lock": "pipenv",
 }
-# Non-manifest project signals useful when a repo has no package manager file.
 SIGNAL_FILES = [
     "LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING",
     "SPEC.md", "CONTRIBUTING.md", "Makefile", "Justfile",
 ]
 SKIP_DIRS = {"node_modules", ".git", "dist", "build", "venv", ".venv", "__pycache__", "target"}
+STATUS_ENUM = {"active", "maintenance", "archived", "experimental"}
+MAX_DEPS = 8
+
+SYSTEM_PROMPT = (Path(__file__).with_name("prompt.md")).read_text(encoding="utf-8").strip()
 
 
 def read_text(path: Path, limit=6000):
     try:
-        return path.read_text(errors="ignore")[:limit]
+        # Normalize newlines so JS/Python fingerprints match across platforms.
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        return text[:limit]
     except Exception:
         return ""
 
@@ -63,8 +75,8 @@ def detect_repo_facts(root: Path):
     facts["manifests"].update(collect_manifests(root))
     facts["package_manager"] = detect_package_manager(root)
 
-    # One level of nested manifests (e.g. generator/requirements.txt, apps/web/package.json)
-    for item in sorted(root.iterdir()):
+    # Sort by name string (case-sensitive). Path ordering on Windows is case-insensitive.
+    for item in sorted(root.iterdir(), key=lambda p: p.name):
         if item.name.startswith(".") or item.name in SKIP_DIRS:
             continue
         if not item.is_dir():
@@ -83,7 +95,7 @@ def detect_repo_facts(root: Path):
         if p.exists():
             facts["readme_excerpt"] = read_text(p, 3000)
             break
-    for item in sorted(root.iterdir()):
+    for item in sorted(root.iterdir(), key=lambda p: p.name):
         if item.name.startswith(".") or item.name in SKIP_DIRS:
             continue
         facts["tree"].append(item.name + ("/" if item.is_dir() else ""))
@@ -102,28 +114,54 @@ def has_enough_evidence(facts):
     return bool(facts["manifests"] or facts["readme_excerpt"] or facts["signals"])
 
 
-SYSTEM_PROMPT = """You produce a JSON object describing a software project's stack for a
-concise, curated "APP_FACTS.md" file. Output ONLY valid JSON, no prose, no code fences.
+def inputs_fingerprint(facts):
+    """Stable cross-runtime fingerprint (avoid JSON escaping differences)."""
+    lines = []
+    for k, v in sorted(facts["manifests"].items()):
+        lines.extend([f"manifest:{k}", v])
+    for k, v in sorted(facts["signals"].items()):
+        lines.extend([f"signal:{k}", v])
+    lines.extend(["readme", facts.get("readme_excerpt") or ""])
+    lines.extend(["tree", "\n".join(sorted(facts["tree"]))])
+    pm = facts.get("package_manager")
+    lines.extend(["packageManager", "" if pm is None else str(pm)])
+    lines.extend(["hasCi", "1" if facts.get("has_ci") else "0"])
+    lines.extend(["hasDocker", "1" if facts.get("has_docker") else "0"])
+    lines.extend(["gitRemote", facts.get("git_remote") or ""])
+    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()[:16]
 
-Schema (all fields required unless noted):
-{
-  "name": string,
-  "type": string (e.g. "web app (SPA)", "CLI tool", "API service", "mobile app"),
-  "status": string (guess "active" unless evidence suggests otherwise),
-  "license": string (SPDX id if you can tell, else "UNKNOWN"),
-  "stack": { "<layer>": "<choice>", ... }  // 4-8 entries: language, runtime, framework,
-        styling, state, backend, database, hosting — only include layers that apply
-  "key_dependencies": [ { "name": string, "purpose": string (<=8 words) }, ... ]  // 5-8 MAX,
-        curated for what best explains the app's shape — do not dump every dependency
-  "build": { "package_manager": string, "test": string, "ci": string, "<other>": string }
-}
 
-Rules:
-- Prefer dependencies that appear in provided manifest content. Never invent package names.
-- When manifests are sparse or absent (docs/spec/tooling repos), derive stack from README and signal files; key_dependencies may be fewer than 5 or empty [].
-- Be concise. Purpose strings are short phrases, not sentences.
-- If information is genuinely unavailable, use "unknown" rather than guessing wildly.
-"""
+def normalize_repo_url(remote):
+    if not remote:
+        return None
+    r = remote.strip()
+    m = re.match(r"^git@([^:]+):(.+?)(?:\.git)?$", r)
+    if m:
+        return f"https://{m.group(1)}/{m.group(2).rstrip('/')}"
+    if r.endswith(".git"):
+        r = r[:-4]
+    if re.match(r"^https?://", r, re.I):
+        return r
+    return None
+
+
+def detect_license(facts):
+    text = "\n".join(facts["signals"].get(n, "") for n in ("LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING"))
+    if not text:
+        return None
+    if re.search(r"Apache License", text, re.I) and re.search(r"Version 2\.0", text, re.I):
+        return "Apache-2.0"
+    if re.search(r"GNU GENERAL PUBLIC LICENSE", text, re.I) and re.search(r"Version 3", text, re.I):
+        return "GPL-3.0"
+    if re.search(r"GNU GENERAL PUBLIC LICENSE", text, re.I) and re.search(r"Version 2", text, re.I):
+        return "GPL-2.0"
+    if re.search(r"Mozilla Public License", text, re.I) and re.search(r"2\.0", text, re.I):
+        return "MPL-2.0"
+    if re.search(r"MIT License", text, re.I) or re.search(r"Permission is hereby granted, free of charge", text, re.I):
+        return "MIT"
+    if re.search(r"\bCC0\b", text, re.I) or re.search(r"Creative Commons Zero", text, re.I):
+        return "CC0-1.0"
+    return None
 
 
 def build_user_prompt(facts):
@@ -136,9 +174,9 @@ def build_user_prompt(facts):
     parts.append(f"Has Docker config: {facts.get('has_docker')}")
     if not facts["manifests"]:
         parts.append("No package-manager manifest was found; use README and signal files.")
-    for name, content in facts["manifests"].items():
+    for name, content in sorted(facts["manifests"].items()):
         parts.append(f"\n--- {name} ---\n{content}")
-    for name, content in facts["signals"].items():
+    for name, content in sorted(facts["signals"].items()):
         parts.append(f"\n--- {name} ---\n{content}")
     if facts["readme_excerpt"]:
         parts.append(f"\n--- README.md (excerpt) ---\n{facts['readme_excerpt']}")
@@ -241,34 +279,102 @@ def extract_json(text):
     return json.loads(text)
 
 
-# ---------- Rendering ----------
+def enrich_data(data, facts):
+    out = dict(data)
+    repo = normalize_repo_url(facts.get("git_remote"))
+    if not out.get("repository") and repo:
+        out["repository"] = repo
 
-def render_app_facts(data, generator_label, consulting_link=None, consulting_name=None):
+    detected = detect_license(facts)
+    if (not out.get("license") or out.get("license") in ("UNKNOWN", "unknown")) and detected:
+        out["license"] = detected
+
+    status = out.get("status")
+    if status and status not in STATUS_ENUM:
+        print(f'Coercing status "{status}" → "active" (not in enum)', file=sys.stderr)
+        out["status"] = "active"
+    if not out.get("status"):
+        out["status"] = "active"
+
+    deps = out.get("key_dependencies") or []
+    if isinstance(deps, list) and len(deps) > MAX_DEPS:
+        print(f"Truncating key_dependencies from {len(deps)} to {MAX_DEPS}", file=sys.stderr)
+        out["key_dependencies"] = deps[:MAX_DEPS]
+
+    return out
+
+
+def validate_frontmatter_data(fm):
+    errors = []
+    for key in ("app_facts_version", "name", "type", "status", "license", "stack",
+                "key_dependencies", "build", "generated"):
+        if fm.get(key) is None:
+            errors.append(f"missing required field: {key}")
+    if fm.get("status") and fm["status"] not in STATUS_ENUM:
+        errors.append(f"status must be one of {', '.join(sorted(STATUS_ENUM))}")
+    stack = fm.get("stack")
+    if not isinstance(stack, dict) or len(stack) < 1:
+        errors.append("stack must be a non-empty object")
+    deps = fm.get("key_dependencies")
+    if not isinstance(deps, list):
+        errors.append("key_dependencies must be an array")
+    else:
+        if len(deps) > MAX_DEPS:
+            errors.append(f"key_dependencies max {MAX_DEPS}")
+        for i, d in enumerate(deps):
+            if not isinstance(d, dict) or not d.get("name"):
+                errors.append(f"key_dependencies[{i}].name required")
+            if not isinstance(d, dict) or not d.get("purpose"):
+                errors.append(f"key_dependencies[{i}].purpose required")
+    gen = fm.get("generated") or {}
+    if not isinstance(gen.get("date"), str) or not isinstance(gen.get("generator"), str):
+        errors.append("generated.date and generated.generator are required")
+    fp = gen.get("inputs_fingerprint")
+    if fp and not re.fullmatch(r"[a-f0-9]{16}", fp):
+        errors.append("generated.inputs_fingerprint must be 16 lowercase hex chars")
+    return errors
+
+
+def build_frontmatter(data, generator_label, fingerprint, consulting_link=None, consulting_name=None):
     fm = {
         "app_facts_version": "0.1.0",
         "name": data.get("name", "unknown"),
         "type": data.get("type", "unknown"),
         "status": data.get("status", "active"),
         "license": data.get("license", "UNKNOWN"),
-        "stack": data.get("stack", {}),
-        "key_dependencies": data.get("key_dependencies", []),
-        "build": data.get("build", {}),
-        "generated": {
-            "date": datetime.date.today().isoformat(),
-            "generator": generator_label,
-        },
+    }
+    if data.get("homepage"):
+        fm["homepage"] = data["homepage"]
+    if data.get("repository"):
+        fm["repository"] = data["repository"]
+    fm["stack"] = data.get("stack") or {}
+    fm["key_dependencies"] = data.get("key_dependencies") or []
+    fm["build"] = data.get("build") or {}
+    fm["generated"] = {
+        "date": datetime.date.today().isoformat(),
+        "generator": generator_label,
+        "inputs_fingerprint": fingerprint,
     }
     if consulting_link:
         fm["credits"] = {
             "generated_with": "https://appfacts.dev",
             "built_by": f"{consulting_name or ''} — {consulting_link}".strip(" —"),
         }
+    return fm
 
+
+def render_app_facts(fm, consulting_link=None, consulting_name=None):
     frontmatter = yaml.safe_dump(fm, sort_keys=False, allow_unicode=True)
 
     stack_rows = "\n".join(f"| {k.title()} | {v} |" for k, v in fm["stack"].items())
-    dep_rows = "\n".join(f"| `{d['name']}` | {d['purpose']} |" for d in fm["key_dependencies"])
-    build_rows = "\n".join(f"| {k.replace('_', ' ').title()} | {v} |" for k, v in fm["build"].items())
+    if fm["key_dependencies"]:
+        dep_rows = "\n".join(f"| `{d['name']}` | {d['purpose']} |" for d in fm["key_dependencies"])
+    else:
+        dep_rows = "| — | — |"
+    if fm["build"]:
+        build_rows = "\n".join(f"| {k.replace('_', ' ').title()} | {v} |" for k, v in fm["build"].items())
+    else:
+        build_rows = "| — | — |"
 
     footer = "*Generated with [AppFacts](https://appfacts.dev)*"
     if consulting_link:
@@ -306,17 +412,38 @@ def render_app_facts(data, generator_label, consulting_link=None, consulting_nam
     return f"---\n{frontmatter}---\n\n{body}"
 
 
+def extract_fingerprint_from_file(text):
+    m = re.search(r"inputs_fingerprint:\s*['\"]?([a-f0-9]{16})['\"]?", text)
+    return m.group(1) if m else None
+
+
+def run_check(out_path: Path, fingerprint: str):
+    if not out_path.exists():
+        sys.exit(f"APP_FACTS.md missing at {out_path}")
+    existing = extract_fingerprint_from_file(out_path.read_text(errors="ignore"))
+    if not existing:
+        sys.exit(f"No generated.inputs_fingerprint in {out_path}; regenerate to enable --check")
+    if existing != fingerprint:
+        sys.exit(f"APP_FACTS.md is stale (file={existing}, scan={fingerprint})")
+    print(f"OK - fingerprint {fingerprint} matches {out_path}")
+
+
 def main():
     ap = argparse.ArgumentParser(description="Generate APP_FACTS.md for a repo")
     ap.add_argument("--path", default=".", help="Repo path (default: current dir)")
     ap.add_argument("--output", default=None, help="Output path (default: <path>/APP_FACTS.md)")
     ap.add_argument("--provider", choices=PROVIDERS.keys(), default="ollama")
-    ap.add_argument("--model", required=True, help="Model name for chosen provider")
+    ap.add_argument("--model", default=None, help="Model name for chosen provider")
     ap.add_argument("--ollama-host", default="http://localhost:11434")
     ap.add_argument("--consulting-link", default=None)
     ap.add_argument("--consulting-name", default=None)
     ap.add_argument("--dry-run", action="store_true", help="Print without writing")
+    ap.add_argument("--check", action="store_true",
+                    help="Re-scan and exit non-zero if APP_FACTS.md fingerprint is stale")
     args = ap.parse_args()
+
+    if not args.check and not args.model:
+        ap.error("--model is required unless --check is set")
 
     root = Path(args.path).resolve()
     out_path = Path(args.output) if args.output else root / "APP_FACTS.md"
@@ -328,6 +455,13 @@ def main():
             f"({', '.join(SIGNAL_FILES[:4])}, …), or a manifest "
             f"({', '.join(MANIFESTS[:4])}, …) at the root or one level down."
         )
+
+    fingerprint = inputs_fingerprint(facts)
+
+    if args.check:
+        run_check(out_path, fingerprint)
+        return
+
     if not facts["manifests"]:
         print("No package manifest found; generating from README and signal files.",
               file=sys.stderr)
@@ -344,14 +478,21 @@ def main():
     except json.JSONDecodeError:
         sys.exit(f"Model did not return valid JSON:\n{raw}")
 
+    data = enrich_data(data, facts)
     generator_label = f"appfacts-cli v0.1.0 ({args.provider}:{args.model})"
-    output = render_app_facts(data, generator_label, args.consulting_link, args.consulting_name)
+    fm = build_frontmatter(data, generator_label, fingerprint, args.consulting_link, args.consulting_name)
+    errors = validate_frontmatter_data(fm)
+    if errors:
+        sys.exit("Validation failed:\n- " + "\n- ".join(errors))
+
+    output = render_app_facts(fm, args.consulting_link, args.consulting_name)
 
     if args.dry_run:
         print(output)
     else:
-        out_path.write_text(output)
-        print(f"Wrote {out_path}")
+        with out_path.open("w", encoding="utf-8", newline="\n") as fh:
+            fh.write(output)
+        print(f"Wrote {out_path} (fingerprint {fingerprint})")
 
 
 if __name__ == "__main__":

@@ -6,14 +6,15 @@
  *
  * Usage:
  *   node generate_app_facts.js --provider ollama --model llama3.1
- *   node generate_app_facts.js --provider openai --model gpt-4o
- *   node generate_app_facts.js --provider anthropic --model claude-sonnet-4-6
- *   node generate_app_facts.js --provider xai --model grok-4
- *   node generate_app_facts.js --provider gemini --model gemini-2.5-pro
+ *   node generate_app_facts.js --check
+ *   node generate_app_facts.js --provider ollama --model llama3.1 \
+ *     --consulting-link https://www.catalystforge.com/ \
+ *     --consulting-name "Catalyst Forge"
  */
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { execSync } = require("child_process");
 
 const MANIFESTS = [
@@ -26,12 +27,15 @@ const LOCKFILE_PM = {
   "poetry.lock": "poetry", "Cargo.lock": "cargo", "go.sum": "go modules",
   "Gemfile.lock": "bundler", "composer.lock": "composer", "Pipfile.lock": "pipenv",
 };
-/** Non-manifest project signals useful when a repo has no package manager file. */
 const SIGNAL_FILES = [
   "LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING",
   "SPEC.md", "CONTRIBUTING.md", "Makefile", "Justfile",
 ];
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", "venv", ".venv", "__pycache__", "target"]);
+const STATUS_ENUM = new Set(["active", "maintenance", "archived", "experimental"]);
+const MAX_DEPS = 8;
+
+const SYSTEM_PROMPT = fs.readFileSync(path.join(__dirname, "prompt.md"), "utf8").trim();
 
 // ---------- CLI args ----------
 
@@ -39,7 +43,7 @@ function parseArgs(argv) {
   const args = {
     path: ".", output: null, provider: "ollama", model: null,
     ollamaHost: "http://localhost:11434",
-    consultingLink: null, consultingName: null, dryRun: false,
+    consultingLink: null, consultingName: null, dryRun: false, check: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -52,9 +56,10 @@ function parseArgs(argv) {
     else if (a === "--consulting-link") args.consultingLink = next();
     else if (a === "--consulting-name") args.consultingName = next();
     else if (a === "--dry-run") args.dryRun = true;
+    else if (a === "--check") args.check = true;
   }
-  if (!args.model) {
-    console.error("Missing required --model <name>");
+  if (!args.check && !args.model) {
+    console.error("Missing required --model <name> (or pass --check)");
     process.exit(1);
   }
   return args;
@@ -64,7 +69,9 @@ function parseArgs(argv) {
 
 function readText(p, limit = 6000) {
   try {
-    return fs.readFileSync(p, "utf8").slice(0, limit);
+    // Normalize newlines so JS/Python fingerprints match on Windows (CRLF) checkouts.
+    const text = fs.readFileSync(p, "utf8").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    return text.slice(0, limit);
   } catch {
     return "";
   }
@@ -97,8 +104,7 @@ function detectRepoFacts(root) {
   Object.assign(facts.manifests, collectManifests(root));
   facts.packageManager = detectPackageManager(root);
 
-  // One level of nested manifests (e.g. generator/requirements.txt, apps/web/package.json)
-  for (const item of fs.readdirSync(root)) {
+  for (const item of fs.readdirSync(root).sort()) {
     if (item.startsWith(".") || SKIP_DIRS.has(item)) continue;
     const sub = path.join(root, item);
     if (!fs.statSync(sub).isDirectory()) continue;
@@ -121,7 +127,7 @@ function detectRepoFacts(root) {
     }
   }
 
-  for (const item of fs.readdirSync(root)) {
+  for (const item of fs.readdirSync(root).sort()) {
     if (item.startsWith(".") || SKIP_DIRS.has(item)) continue;
     const isDir = fs.statSync(path.join(root, item)).isDirectory();
     facts.tree.push(item + (isDir ? "/" : ""));
@@ -146,29 +152,55 @@ function hasEnoughEvidence(facts) {
     || Object.keys(facts.signals).length > 0;
 }
 
-// ---------- Prompting ----------
-
-const SYSTEM_PROMPT = `You produce a JSON object describing a software project's stack for a
-concise, curated "APP_FACTS.md" file. Output ONLY valid JSON, no prose, no code fences.
-
-Schema (all fields required unless noted):
-{
-  "name": string,
-  "type": string (e.g. "web app (SPA)", "CLI tool", "API service", "mobile app"),
-  "status": string (guess "active" unless evidence suggests otherwise),
-  "license": string (SPDX id if you can tell, else "UNKNOWN"),
-  "stack": { "<layer>": "<choice>", ... }  // 4-8 entries: language, runtime, framework,
-        styling, state, backend, database, hosting — only include layers that apply
-  "key_dependencies": [ { "name": string, "purpose": string (<=8 words) }, ... ]  // 5-8 MAX,
-        curated for what best explains the app's shape — do not dump every dependency
-  "build": { "package_manager": string, "test": string, "ci": string, "<other>": string }
+function sortedObject(obj) {
+  return Object.fromEntries(Object.entries(obj).sort(([a], [b]) => a.localeCompare(b)));
 }
 
-Rules:
-- Prefer dependencies that appear in provided manifest content. Never invent package names.
-- When manifests are sparse or absent (docs/spec/tooling repos), derive stack from README and signal files; key_dependencies may be fewer than 5 or empty [].
-- Be concise. Purpose strings are short phrases, not sentences.
-- If information is genuinely unavailable, use "unknown" rather than guessing wildly.`;
+/** Stable cross-runtime fingerprint (avoid JSON escaping differences). */
+function inputsFingerprint(facts) {
+  const lines = [];
+  for (const [k, v] of Object.entries(sortedObject(facts.manifests))) {
+    lines.push(`manifest:${k}`, v);
+  }
+  for (const [k, v] of Object.entries(sortedObject(facts.signals))) {
+    lines.push(`signal:${k}`, v);
+  }
+  lines.push("readme", facts.readmeExcerpt || "");
+  lines.push("tree", [...facts.tree].sort().join("\n"));
+  lines.push("packageManager", facts.packageManager == null ? "" : String(facts.packageManager));
+  lines.push("hasCi", facts.hasCi ? "1" : "0");
+  lines.push("hasDocker", facts.hasDocker ? "1" : "0");
+  lines.push("gitRemote", facts.gitRemote || "");
+  return crypto.createHash("sha256").update(lines.join("\n"), "utf8").digest("hex").slice(0, 16);
+}
+
+function normalizeRepoUrl(remote) {
+  if (!remote) return null;
+  let r = remote.trim();
+  const ssh = r.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
+  if (ssh) return `https://${ssh[1]}/${ssh[2].replace(/\/$/, "")}`;
+  if (r.endsWith(".git")) r = r.slice(0, -4);
+  if (/^https?:\/\//i.test(r)) return r;
+  return null;
+}
+
+function detectLicense(facts) {
+  const text = ["LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING"]
+    .map(n => facts.signals[n] || "").join("\n");
+  if (!text) return null;
+  if (/Apache License/i.test(text) && /Version 2\.0/i.test(text)) return "Apache-2.0";
+  if (/GNU GENERAL PUBLIC LICENSE/i.test(text) && /Version 3/i.test(text)) return "GPL-3.0";
+  if (/GNU GENERAL PUBLIC LICENSE/i.test(text) && /Version 2/i.test(text)) return "GPL-2.0";
+  if (/Mozilla Public License/i.test(text) && /2\.0/i.test(text)) return "MPL-2.0";
+  if (/BSD 3-Clause/i.test(text) || /Redistribution and use in source and binary forms/i.test(text) && /3-clause/i.test(text)) {
+    return "BSD-3-Clause";
+  }
+  if (/MIT License/i.test(text) || /\bPermission is hereby granted, free of charge\b/i.test(text)) return "MIT";
+  if (/\bCC0\b/i.test(text) || /Creative Commons Zero/i.test(text)) return "CC0-1.0";
+  return null;
+}
+
+// ---------- Prompting ----------
 
 function buildUserPrompt(facts) {
   const parts = ["Repository facts:\n"];
@@ -180,10 +212,10 @@ function buildUserPrompt(facts) {
   if (Object.keys(facts.manifests).length === 0) {
     parts.push("No package-manager manifest was found; use README and signal files.");
   }
-  for (const [name, content] of Object.entries(facts.manifests)) {
+  for (const [name, content] of Object.entries(sortedObject(facts.manifests))) {
     parts.push(`\n--- ${name} ---\n${content}`);
   }
-  for (const [name, content] of Object.entries(facts.signals)) {
+  for (const [name, content] of Object.entries(sortedObject(facts.signals))) {
     parts.push(`\n--- ${name} ---\n${content}`);
   }
   if (facts.readmeExcerpt) parts.push(`\n--- README.md (excerpt) ---\n${facts.readmeExcerpt}`);
@@ -295,6 +327,61 @@ function extractJson(text) {
   return JSON.parse(cleaned);
 }
 
+// ---------- Enrich + validate ----------
+
+function enrichData(data, facts) {
+  const out = { ...data };
+  const repo = normalizeRepoUrl(facts.gitRemote);
+  if (!out.repository && repo) out.repository = repo;
+
+  const detected = detectLicense(facts);
+  if ((!out.license || out.license === "UNKNOWN" || out.license === "unknown") && detected) {
+    out.license = detected;
+  }
+
+  if (out.status && !STATUS_ENUM.has(out.status)) {
+    console.warn(`Coercing status "${out.status}" → "active" (not in enum)`);
+    out.status = "active";
+  }
+  if (!out.status) out.status = "active";
+
+  if (Array.isArray(out.key_dependencies) && out.key_dependencies.length > MAX_DEPS) {
+    console.warn(`Truncating key_dependencies from ${out.key_dependencies.length} to ${MAX_DEPS}`);
+    out.key_dependencies = out.key_dependencies.slice(0, MAX_DEPS);
+  }
+
+  return out;
+}
+
+function validateFrontmatterData(fm) {
+  const errors = [];
+  for (const key of ["app_facts_version", "name", "type", "status", "license", "stack", "key_dependencies", "build", "generated"]) {
+    if (fm[key] === undefined || fm[key] === null) errors.push(`missing required field: ${key}`);
+  }
+  if (fm.status && !STATUS_ENUM.has(fm.status)) {
+    errors.push(`status must be one of ${[...STATUS_ENUM].join(", ")}`);
+  }
+  if (fm.stack && (typeof fm.stack !== "object" || Array.isArray(fm.stack) || Object.keys(fm.stack).length < 1)) {
+    errors.push("stack must be a non-empty object");
+  }
+  if (!Array.isArray(fm.key_dependencies)) {
+    errors.push("key_dependencies must be an array");
+  } else {
+    if (fm.key_dependencies.length > MAX_DEPS) errors.push(`key_dependencies max ${MAX_DEPS}`);
+    fm.key_dependencies.forEach((d, i) => {
+      if (!d || typeof d.name !== "string" || !d.name) errors.push(`key_dependencies[${i}].name required`);
+      if (!d || typeof d.purpose !== "string" || !d.purpose) errors.push(`key_dependencies[${i}].purpose required`);
+    });
+  }
+  if (!fm.generated || typeof fm.generated.date !== "string" || typeof fm.generated.generator !== "string") {
+    errors.push("generated.date and generated.generator are required");
+  }
+  if (fm.generated?.inputs_fingerprint && !/^[a-f0-9]{16}$/.test(fm.generated.inputs_fingerprint)) {
+    errors.push("generated.inputs_fingerprint must be 16 lowercase hex chars");
+  }
+  return errors;
+}
+
 // ---------- Minimal YAML writer (no deps) ----------
 
 function yamlEscape(str) {
@@ -330,20 +417,23 @@ function toYaml(obj, indent = 0) {
 
 // ---------- Rendering ----------
 
-function renderAppFacts(data, generatorLabel, consultingLink, consultingName) {
+function buildFrontmatter(data, generatorLabel, fingerprint, consultingLink, consultingName) {
   const fm = {
     app_facts_version: "0.1.0",
     name: data.name || "unknown",
     type: data.type || "unknown",
     status: data.status || "active",
     license: data.license || "UNKNOWN",
-    stack: data.stack || {},
-    key_dependencies: data.key_dependencies || [],
-    build: data.build || {},
-    generated: {
-      date: new Date().toISOString().slice(0, 10),
-      generator: generatorLabel,
-    },
+  };
+  if (data.homepage) fm.homepage = data.homepage;
+  if (data.repository) fm.repository = data.repository;
+  fm.stack = data.stack || {};
+  fm.key_dependencies = data.key_dependencies || [];
+  fm.build = data.build || {};
+  fm.generated = {
+    date: new Date().toISOString().slice(0, 10),
+    generator: generatorLabel,
+    inputs_fingerprint: fingerprint,
   };
   if (consultingLink) {
     fm.credits = {
@@ -351,15 +441,20 @@ function renderAppFacts(data, generatorLabel, consultingLink, consultingName) {
       built_by: `${consultingName || ""} — ${consultingLink}`.replace(/^ — /, ""),
     };
   }
+  return fm;
+}
 
+function renderAppFacts(fm, consultingLink, consultingName) {
   const frontmatter = toYaml(fm);
 
   const stackRows = Object.entries(fm.stack)
     .map(([k, v]) => `| ${k[0].toUpperCase() + k.slice(1)} | ${v} |`).join("\n");
-  const depRows = fm.key_dependencies
-    .map(d => `| \`${d.name}\` | ${d.purpose} |`).join("\n");
+  const depRows = (fm.key_dependencies.length
+    ? fm.key_dependencies.map(d => `| \`${d.name}\` | ${d.purpose} |`).join("\n")
+    : "| — | — |");
   const buildRows = Object.entries(fm.build)
-    .map(([k, v]) => `| ${k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())} | ${v} |`).join("\n");
+    .map(([k, v]) => `| ${k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())} | ${v} |`).join("\n")
+    || "| — | — |";
 
   let footer = "*Generated with [AppFacts](https://appfacts.dev)*";
   if (consultingLink) {
@@ -399,6 +494,28 @@ ${footer}
   return `---\n${frontmatter}---\n\n${body}`;
 }
 
+function extractFingerprintFromFile(text) {
+  const m = text.match(/inputs_fingerprint:\s*["']?([a-f0-9]{16})["']?/);
+  return m ? m[1] : null;
+}
+
+function runCheck(outPath, fingerprint) {
+  if (!fs.existsSync(outPath)) {
+    console.error(`APP_FACTS.md missing at ${outPath}`);
+    process.exit(1);
+  }
+  const existing = extractFingerprintFromFile(fs.readFileSync(outPath, "utf8"));
+  if (!existing) {
+    console.error(`No generated.inputs_fingerprint in ${outPath}; regenerate to enable --check`);
+    process.exit(1);
+  }
+  if (existing !== fingerprint) {
+    console.error(`APP_FACTS.md is stale (file=${existing}, scan=${fingerprint})`);
+    process.exit(1);
+  }
+  console.log(`OK - fingerprint ${fingerprint} matches ${outPath}`);
+}
+
 // ---------- Main ----------
 
 async function main() {
@@ -415,6 +532,14 @@ async function main() {
     );
     process.exit(1);
   }
+
+  const fingerprint = inputsFingerprint(facts);
+
+  if (args.check) {
+    runCheck(outPath, fingerprint);
+    return;
+  }
+
   if (Object.keys(facts.manifests).length === 0) {
     console.warn("No package manifest found; generating from README and signal files.");
   }
@@ -431,19 +556,27 @@ async function main() {
   let data;
   try {
     data = extractJson(raw);
-  } catch (e) {
+  } catch {
     console.error("Model did not return valid JSON:\n" + raw);
     process.exit(1);
   }
 
+  data = enrichData(data, facts);
   const generatorLabel = `appfacts-cli v0.1.0 (${args.provider}:${args.model})`;
-  const output = renderAppFacts(data, generatorLabel, args.consultingLink, args.consultingName);
+  const fm = buildFrontmatter(data, generatorLabel, fingerprint, args.consultingLink, args.consultingName);
+  const errors = validateFrontmatterData(fm);
+  if (errors.length) {
+    console.error("Validation failed:\n- " + errors.join("\n- "));
+    process.exit(1);
+  }
+
+  const output = renderAppFacts(fm, args.consultingLink, args.consultingName);
 
   if (args.dryRun) {
     console.log(output);
   } else {
     fs.writeFileSync(outPath, output);
-    console.log(`Wrote ${outPath}`);
+    console.log(`Wrote ${outPath} (fingerprint ${fingerprint})`);
   }
 }
 
