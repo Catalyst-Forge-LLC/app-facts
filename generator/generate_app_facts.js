@@ -1067,7 +1067,7 @@ function renderAppFacts(fm, consultingLink, consultingName, viewerUrl) {
 
 \`${fm.type}\` · **${fm.status}** · ${fm.license}
 
-Curated stack label for this repository — aimed at a ~10 second read.
+Curated stack label for this repository — aimed at an under-a-minute skim.
 
 **[Open visual label →][appfacts-label]** · or scan \`APP_FACTS.png\`
 ${linkLine}
