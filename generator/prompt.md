@@ -40,3 +40,5 @@ Rules:
 - Be concise. Purpose/role strings are short phrases, not sentences.
 - If information is genuinely unavailable, use "unknown" rather than guessing wildly.
 - Do not invent homepage or repository URLs; omit them from the JSON if unknown.
+  When a "Resolved public repository URL" is provided, use that exact value for `repository`
+  (never an SSH Host alias like `github-myuser`).

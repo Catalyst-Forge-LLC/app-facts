@@ -14,8 +14,9 @@
 
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 const crypto = require("crypto");
-const { execSync } = require("child_process");
+const { execSync, execFileSync } = require("child_process");
 const { writeQrPng } = require("./qr.js");
 const { viewerUrlFor } = require("./viewer_codec.js");
 
@@ -444,6 +445,7 @@ function scanLanguages(root) {
 
 function detectRepoFacts(root) {
   const facts = {
+    root,
     manifests: {}, signals: {}, packageManager: null,
     readmeExcerpt: "", tree: [], languages: {}, fileTypes: {}, notable: [],
     envTemplates: {}, envKeys: [], serviceHints: [],
@@ -554,13 +556,118 @@ function inputsFingerprint(facts) {
   return crypto.createHash("sha256").update(lines.join("\n"), "utf8").digest("hex").slice(0, 16);
 }
 
-function normalizeRepoUrl(remote) {
+/** Parse ~/.ssh/config Host → HostName (aliases like github-work → github.com). */
+function loadSshHostMap() {
+  const map = {};
+  const configPath = path.join(os.homedir(), ".ssh", "config");
+  let text = "";
+  try {
+    text = fs.readFileSync(configPath, "utf8");
+  } catch {
+    return map;
+  }
+  let current = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    const hostMatch = line.match(/^host\s+(.+)$/i);
+    if (hostMatch) {
+      current = hostMatch[1].split(/\s+/).filter((h) => h && !/[?*]/.test(h));
+      continue;
+    }
+    const nameMatch = line.match(/^hostname\s+(\S+)/i);
+    if (nameMatch && current.length) {
+      for (const h of current) map[h.toLowerCase()] = nameMatch[1];
+    }
+  }
+  return map;
+}
+
+let _sshHostMap = null;
+function resolveSshHostname(alias) {
+  if (!alias) return alias;
+  const key = alias.toLowerCase();
+  if (_sshHostMap == null) _sshHostMap = loadSshHostMap();
+  if (_sshHostMap[key]) return _sshHostMap[key];
+  // Fallback: `ssh -G` expands Includes / Match blocks OpenSSH knows about.
+  try {
+    const out = execFileSync("ssh", ["-G", alias], {
+      encoding: "utf8",
+      timeout: 4000,
+      stdio: ["pipe", "pipe", "ignore"],
+    });
+    const m = out.match(/^hostname\s+(\S+)/m);
+    if (m && m[1]) {
+      _sshHostMap[key] = m[1];
+      return m[1];
+    }
+  } catch { /* ignore */ }
+  return alias;
+}
+
+/** Apply git url.*.insteadOf rewrites (local repo then global). */
+function applyGitInsteadOf(remote, root) {
+  const rules = [];
+  const queries = [
+    { args: ["config", "--get-regexp", "url\\..*\\.insteadof"], cwd: root || undefined },
+    { args: ["config", "--global", "--get-regexp", "url\\..*\\.insteadof"], cwd: undefined },
+  ];
+  for (const q of queries) {
+    try {
+      const out = execFileSync("git", q.args, {
+        cwd: q.cwd,
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "ignore"],
+        timeout: 3000,
+      });
+      for (const line of out.split(/\r?\n/)) {
+        const m = line.match(/^url\.(.+)\.insteadof\s+(.+)$/i);
+        if (m) rules.push({ base: m[1], prefix: m[2] });
+      }
+    } catch { /* no rules */ }
+  }
+  rules.sort((a, b) => b.prefix.length - a.prefix.length);
+  for (const r of rules) {
+    if (remote.startsWith(r.prefix)) return r.base + remote.slice(r.prefix.length);
+  }
+  return remote;
+}
+
+/**
+ * Turn a git remote into a public https URL.
+ * Resolves SSH Host aliases (github-work → github.com) and git insteadOf.
+ */
+function normalizeRepoUrl(remote, root = null) {
   if (!remote) return null;
-  let r = remote.trim();
-  const ssh = r.match(/^git@([^:]+):(.+?)(?:\.git)?$/);
-  if (ssh) return `https://${ssh[1]}/${ssh[2].replace(/\/$/, "")}`;
+  let r = applyGitInsteadOf(remote.trim(), root);
+
+  // Classic git@host:path (not Windows drive paths like C:\...)
+  const sshScp = r.match(/^([^@\s]+)@([^:/\s]+):(.+)$/);
+  if (sshScp && !/^[A-Za-z]:/.test(r)) {
+    const host = resolveSshHostname(sshScp[2]);
+    const p = sshScp[3].replace(/\.git$/i, "").replace(/^\/+/, "").replace(/\/$/, "");
+    return `https://${host}/${p}`;
+  }
+
+  const sshUrl = r.match(/^ssh:\/\/(?:([^@]+)@)?([^/]+)\/(.+)$/i);
+  if (sshUrl) {
+    const host = resolveSshHostname(sshUrl[2]);
+    const p = sshUrl[3].replace(/\.git$/i, "").replace(/\/$/, "");
+    return `https://${host}/${p}`;
+  }
+
   if (r.endsWith(".git")) r = r.slice(0, -4);
-  if (/^https?:\/\//i.test(r)) return r;
+  if (/^https?:\/\//i.test(r)) {
+    try {
+      const u = new URL(r);
+      u.hostname = resolveSshHostname(u.hostname);
+      u.hash = "";
+      u.search = "";
+      return u.href.replace(/\/$/, "");
+    } catch {
+      return r;
+    }
+  }
   return null;
 }
 
@@ -596,7 +703,11 @@ function detectLicense(facts) {
 
 function buildUserPrompt(facts) {
   const parts = ["Repository facts:\n"];
-  if (facts.gitRemote) parts.push(`Git remote: ${facts.gitRemote}`);
+  if (facts.gitRemote) {
+    parts.push(`Git remote: ${facts.gitRemote}`);
+    const resolved = normalizeRepoUrl(facts.gitRemote, facts.root || null);
+    if (resolved) parts.push(`Resolved public repository URL: ${resolved}`);
+  }
   parts.push(`Top-level files/dirs: ${facts.tree.join(", ")}`);
   const langs = Object.entries(facts.languages || {}).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   if (langs.length) {
@@ -748,8 +859,9 @@ function extractJson(text) {
 
 function enrichData(data, facts) {
   const out = { ...data };
-  const repo = normalizeRepoUrl(facts.gitRemote);
-  if (!out.repository && repo) out.repository = repo;
+  // Git remote is authoritative; resolve SSH Host aliases → public https URL.
+  const repo = normalizeRepoUrl(facts.gitRemote, facts.root || null);
+  if (repo) out.repository = repo;
 
   const detected = detectLicense(facts);
   if ((!out.license || out.license === "UNKNOWN" || out.license === "unknown") && detected) {
