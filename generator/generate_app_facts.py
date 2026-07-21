@@ -324,6 +324,7 @@ def scan_languages(root: Path):
 
 def detect_repo_facts(root: Path):
     facts = {
+        "root": root,
         "manifests": {}, "signals": {}, "package_manager": None,
         "readme_excerpt": "", "tree": [],
         "languages": {}, "file_types": {}, "notable": [],
@@ -415,17 +416,120 @@ def inputs_fingerprint(facts):
     return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()[:16]
 
 
-def normalize_repo_url(remote):
+_ssh_host_map = None
+
+
+def load_ssh_host_map():
+    """Parse ~/.ssh/config Host → HostName (aliases like github-acmegeek → github.com)."""
+    mapping = {}
+    config_path = Path.home() / ".ssh" / "config"
+    try:
+        text = config_path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return mapping
+    current = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        host_match = re.match(r"^host\s+(.+)$", line, re.I)
+        if host_match:
+            current = [h for h in host_match.group(1).split() if h and not re.search(r"[?*]", h)]
+            continue
+        name_match = re.match(r"^hostname\s+(\S+)", line, re.I)
+        if name_match and current:
+            for h in current:
+                mapping[h.lower()] = name_match.group(1)
+    return mapping
+
+
+def resolve_ssh_hostname(alias):
+    global _ssh_host_map
+    if not alias:
+        return alias
+    key = alias.lower()
+    if _ssh_host_map is None:
+        _ssh_host_map = load_ssh_host_map()
+    if key in _ssh_host_map:
+        return _ssh_host_map[key]
+    # Fallback: `ssh -G` expands Includes / Match blocks OpenSSH knows about.
+    try:
+        out = subprocess.run(
+            ["ssh", "-G", alias],
+            capture_output=True, text=True, timeout=4,
+        )
+        if out.returncode == 0:
+            m = re.search(r"^hostname\s+(\S+)", out.stdout, re.M)
+            if m:
+                _ssh_host_map[key] = m.group(1)
+                return m.group(1)
+    except Exception:
+        pass
+    return alias
+
+
+def apply_git_insteadof(remote, root=None):
+    """Apply git url.*.insteadOf rewrites (local repo then global)."""
+    rules = []
+    queries = [
+        (["git", "config", "--get-regexp", r"url\..*\.insteadof"], root),
+        (["git", "config", "--global", "--get-regexp", r"url\..*\.insteadof"], None),
+    ]
+    for args, cwd in queries:
+        try:
+            out = subprocess.run(
+                args, capture_output=True, text=True, timeout=3,
+                cwd=str(cwd) if cwd else None,
+            )
+            if out.returncode != 0:
+                continue
+            for line in out.stdout.splitlines():
+                m = re.match(r"^url\.(.+)\.insteadof\s+(.+)$", line, re.I)
+                if m:
+                    rules.append((m.group(1), m.group(2)))
+        except Exception:
+            pass
+    rules.sort(key=lambda pair: len(pair[1]), reverse=True)
+    for base, prefix in rules:
+        if remote.startswith(prefix):
+            return base + remote[len(prefix):]
+    return remote
+
+
+def normalize_repo_url(remote, root=None):
+    """Turn a git remote into a public https URL (resolve SSH Host aliases)."""
     if not remote:
         return None
-    r = remote.strip()
-    m = re.match(r"^git@([^:]+):(.+?)(?:\.git)?$", r)
+    r = apply_git_insteadof(remote.strip(), root)
+
+    # Classic git@host:path (not Windows drive paths like C:\...)
+    m = re.match(r"^([^@\s]+)@([^:/\s]+):(.+)$", r)
+    if m and not re.match(r"^[A-Za-z]:", r):
+        host = resolve_ssh_hostname(m.group(2))
+        path = re.sub(r"\.git$", "", m.group(3), flags=re.I).lstrip("/").rstrip("/")
+        return f"https://{host}/{path}"
+
+    m = re.match(r"^ssh://(?:[^@]+@)?([^/]+)/(.+)$", r, re.I)
     if m:
-        return f"https://{m.group(1)}/{m.group(2).rstrip('/')}"
+        host = resolve_ssh_hostname(m.group(1))
+        path = re.sub(r"\.git$", "", m.group(2), flags=re.I).rstrip("/")
+        return f"https://{host}/{path}"
+
     if r.endswith(".git"):
         r = r[:-4]
     if re.match(r"^https?://", r, re.I):
-        return r
+        try:
+            from urllib.parse import urlsplit, urlunsplit
+            parts = urlsplit(r)
+            host = resolve_ssh_hostname(parts.hostname or "")
+            netloc = host
+            if parts.port:
+                netloc = f"{host}:{parts.port}"
+            if parts.username:
+                netloc = f"{parts.username}@{netloc}"
+            return urlunsplit((parts.scheme, netloc, parts.path.rstrip("/"), "", ""))
+        except Exception:
+            return r
     return None
 
 
@@ -467,6 +571,9 @@ def build_user_prompt(facts):
     parts = ["Repository facts:\n"]
     if facts.get("git_remote"):
         parts.append(f"Git remote: {facts['git_remote']}")
+        resolved = normalize_repo_url(facts["git_remote"], facts.get("root"))
+        if resolved:
+            parts.append(f"Resolved public repository URL: {resolved}")
     parts.append(f"Top-level files/dirs: {', '.join(facts['tree'])}")
     langs = sorted(facts.get("languages", {}).items(), key=lambda kv: (-kv[1], kv[0]))
     if langs:
@@ -602,8 +709,9 @@ def extract_json(text):
 
 def enrich_data(data, facts):
     out = dict(data)
-    repo = normalize_repo_url(facts.get("git_remote"))
-    if not out.get("repository") and repo:
+    # Git remote is authoritative; resolve SSH Host aliases → public https URL.
+    repo = normalize_repo_url(facts.get("git_remote"), facts.get("root"))
+    if repo:
         out["repository"] = repo
 
     detected = detect_license(facts)
