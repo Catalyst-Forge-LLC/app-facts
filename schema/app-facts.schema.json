@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://appfacts.dev/schema/app-facts.schema.json",
+  "title": "AppFacts frontmatter",
+  "type": "object",
+  "required": ["app_facts_version", "name", "type", "status", "license", "stack", "key_dependencies", "build", "generated"],
+  "properties": {
+    "app_facts_version": { "type": "string" },
+    "name": { "type": "string" },
+    "type": { "type": "string" },
+    "status": { "type": "string" },
+    "license": { "type": "string" },
+    "homepage": { "type": "string", "format": "uri" },
+    "repository": { "type": "string", "format": "uri" },
+    "stack": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "minProperties": 1
+    },
+    "key_dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "purpose"],
+        "properties": {
+          "name": { "type": "string" },
+          "purpose": { "type": "string" }
+        }
+      },
+      "maxItems": 10
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "generated": {
+      "type": "object",
+      "required": ["date", "generator"],
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "generator": { "type": "string" }
+      }
+    },
+    "credits": {
+      "type": "object",
+      "properties": {
+        "generated_with": { "type": "string" },
+        "built_by": { "type": "string" }
+      }
+    }
+  }
+}
