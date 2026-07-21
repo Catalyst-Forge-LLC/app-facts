@@ -40,6 +40,68 @@ SKIP_DIRS = {"node_modules", ".git", "dist", "build", "venv", ".venv", "__pycach
 VENDOR_DIRS = {"vendor", "vendored", "third_party", "third-party", "bower_components", "external"}
 STATUS_ENUM = {"active", "maintenance", "archived", "experimental"}
 MAX_DEPS = 8
+MAX_SERVICES = 6
+
+# Framework / tooling config files (root) — short excerpts for the model.
+FRAMEWORK_CONFIGS = [
+    "svelte.config.js", "svelte.config.ts", "svelte.config.mjs",
+    "next.config.js", "next.config.mjs", "next.config.ts",
+    "nuxt.config.js", "nuxt.config.ts", "nuxt.config.mjs",
+    "astro.config.mjs", "astro.config.ts", "astro.config.js",
+    "vite.config.ts", "vite.config.js", "vite.config.mjs",
+    "angular.json", "remix.config.js", "vue.config.js",
+    "pnpm-workspace.yaml", "lerna.json", "nx.json", "turbo.json",
+]
+# Deploy / hosting signals (root or under deploy/).
+DEPLOY_FILES = [
+    "Dockerfile", "docker-compose.yml", "docker-compose.yaml",
+    "fly.toml", "vercel.json", "netlify.toml", "wrangler.toml", "wrangler.jsonc",
+    "railway.toml", "render.yaml", "Caddyfile", "Procfile", "app.yaml",
+]
+
+# Well-known env key prefixes → service hints (names only; never values).
+# Keep in sync with the JS generator.
+ENV_SERVICE_HINTS = [
+    (re.compile(r"^STRIPE_", re.I), "Stripe (billing)"),
+    (re.compile(r"^PUBLIC_STRIPE_", re.I), "Stripe (billing)"),
+    (re.compile(r"^POSTHOG_", re.I), "PostHog (analytics)"),
+    (re.compile(r"^PUBLIC_POSTHOG_", re.I), "PostHog (analytics)"),
+    (re.compile(r"^ANTHROPIC_", re.I), "Anthropic (LLM)"),
+    (re.compile(r"^OPENAI_", re.I), "OpenAI (LLM)"),
+    (re.compile(r"^GEMINI_", re.I), "Google Gemini (LLM)"),
+    (re.compile(r"^XAI_", re.I), "xAI (LLM)"),
+    (re.compile(r"^OLLAMA_", re.I), "Ollama (local LLM)"),
+    (re.compile(r"^LLM_", re.I), "LLM provider"),
+    (re.compile(r"^RESEND_", re.I), "Resend (email)"),
+    (re.compile(r"^SENDGRID_", re.I), "SendGrid (email)"),
+    (re.compile(r"^MAILGUN_", re.I), "Mailgun (email)"),
+    (re.compile(r"^POSTMARK_", re.I), "Postmark (email)"),
+    (re.compile(r"^TAVILY_", re.I), "Tavily (search/scrape)"),
+    (re.compile(r"^BRIGHT_DATA_", re.I), "Bright Data (scrape)"),
+    (re.compile(r"^POCKETBASE_", re.I), "PocketBase"),
+    (re.compile(r"^OUTPOST_", re.I), "Outpost (scrape edge)"),
+    (re.compile(r"^SENTRY_", re.I), "Sentry"),
+    (re.compile(r"^AWS_", re.I), "AWS"),
+    (re.compile(r"^S3_", re.I), "S3-compatible storage"),
+    (re.compile(r"^CLOUDFLARE_", re.I), "Cloudflare"),
+    (re.compile(r"^CF_", re.I), "Cloudflare"),
+    (re.compile(r"^OAUTH_GOOGLE", re.I), "Google OAuth"),
+    (re.compile(r"^OAUTH_MICROSOFT", re.I), "Microsoft OAuth"),
+    (re.compile(r"^OAUTH_LINKEDIN", re.I), "LinkedIn OAuth"),
+    (re.compile(r"^GOOGLE_CLIENT_", re.I), "Google OAuth"),
+    (re.compile(r"^AUTH0_", re.I), "Auth0"),
+    (re.compile(r"^CLERK_", re.I), "Clerk (auth)"),
+    (re.compile(r"^SUPABASE_", re.I), "Supabase"),
+    (re.compile(r"^FIREBASE_", re.I), "Firebase"),
+    (re.compile(r"^DATABASE_URL$", re.I), "Database (URL)"),
+    (re.compile(r"^POSTGRES_", re.I), "PostgreSQL"),
+    (re.compile(r"^MYSQL_", re.I), "MySQL"),
+    (re.compile(r"^REDIS_", re.I), "Redis"),
+    (re.compile(r"^TWILIO_", re.I), "Twilio"),
+    (re.compile(r"^SLACK_", re.I), "Slack"),
+    (re.compile(r"^GITHUB_", re.I), "GitHub"),
+    (re.compile(r"^VERCEL_", re.I), "Vercel"),
+]
 
 # Map file extension -> language/tech, so polyglot repos aren't collapsed to
 # whatever happens to have a manifest. Keep in sync with the JS generator.
@@ -69,12 +131,86 @@ def read_text(path: Path, limit=6000):
         return ""
 
 
+def is_env_template_name(name: str) -> bool:
+    """True for env *templates* only — never real `.env` / `.env.local` / `.env.prod`."""
+    n = name.lower()
+    if n == "env.example":
+        return True
+    if re.fullmatch(r"\.env\.(example|sample|template)", n):
+        return True
+    if re.fullmatch(r"\.env\.[^.]+\.(example|sample|template)", n):
+        return True
+    if re.fullmatch(r"[^.].*\.env\.(example|sample|template)", n):
+        return True
+    return False
+
+
+def extract_env_keys(text: str):
+    """Extract KEY names only from an env template (including commented `# KEY=`)."""
+    keys = set()
+    for line in text.split("\n"):
+        t = line.strip()
+        if not t:
+            continue
+        m = re.match(r"^(?:export\s+|#\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*=", t)
+        if m:
+            keys.add(m.group(1))
+    return sorted(keys)
+
+
+def service_hints_from_env_keys(keys):
+    hints = set()
+    for key in keys:
+        for pattern, label in ENV_SERVICE_HINTS:
+            if pattern.search(key):
+                hints.add(label)
+    return sorted(hints)
+
+
+def summarize_package_json(file_path: Path) -> str:
+    """Structured package.json summary — full dependency names, no 6k truncation."""
+    try:
+        raw = file_path.read_text(encoding="utf-8", errors="ignore")
+        raw = raw.replace("\r\n", "\n").replace("\r", "\n")
+    except Exception:
+        return ""
+    try:
+        pkg = json.loads(raw)
+    except Exception:
+        return raw[:6000]
+    lines = ["(structured package.json summary — dependency names only)"]
+    if pkg.get("name") is not None:
+        lines.append(f"name: {pkg['name']}")
+    if pkg.get("private") is True:
+        lines.append("private: true")
+    if pkg.get("type") is not None:
+        lines.append(f"type: {pkg['type']}")
+    if pkg.get("license") is not None:
+        lines.append(f"license: {pkg['license']}")
+    if pkg.get("packageManager") is not None:
+        lines.append(f"packageManager: {pkg['packageManager']}")
+    engines = pkg.get("engines")
+    if isinstance(engines, dict):
+        for k in sorted(engines):
+            lines.append(f"engines.{k}: {engines[k]}")
+    scripts = pkg.get("scripts")
+    if isinstance(scripts, dict) and scripts:
+        lines.append("scripts: " + ", ".join(sorted(scripts)))
+    for field in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
+        obj = pkg.get(field)
+        if isinstance(obj, dict) and obj:
+            lines.append(f"{field}: " + ", ".join(sorted(obj)))
+    return "\n".join(lines)
+
+
 def collect_manifests(dir_path: Path, label_prefix=""):
     found = {}
     for m in MANIFESTS:
         p = dir_path / m
         if p.is_file():
-            found[label_prefix + m] = read_text(p)
+            found[label_prefix + m] = (
+                summarize_package_json(p) if m == "package.json" else read_text(p)
+            )
     return found
 
 
@@ -83,6 +219,74 @@ def detect_package_manager(dir_path: Path):
         if (dir_path / lock).exists():
             return pm
     return None
+
+
+def collect_env_templates(root: Path):
+    templates = {}
+
+    def scan_dir(dir_path: Path, label_prefix: str):
+        try:
+            entries = sorted(dir_path.iterdir(), key=lambda p: p.name)
+        except OSError:
+            return
+        for ent in entries:
+            if not ent.is_file() or not is_env_template_name(ent.name):
+                continue
+            # Keys only — values from templates are discarded after extraction.
+            templates[label_prefix + ent.name] = extract_env_keys(read_text(ent, 100000))
+
+    scan_dir(root, "")
+    try:
+        for item in sorted(root.iterdir(), key=lambda p: p.name):
+            if item.name.startswith(".") or item.name in SKIP_DIRS:
+                continue
+            if item.is_dir():
+                scan_dir(item, item.name + "/")
+    except OSError:
+        pass
+    return templates
+
+
+def collect_shape_signals(root: Path):
+    configs = {}
+    for name in FRAMEWORK_CONFIGS:
+        p = root / name
+        if p.is_file():
+            configs[name] = read_text(p, 2000)
+
+    deploy = []
+    for name in DEPLOY_FILES:
+        if (root / name).is_file():
+            deploy.append(name)
+    deploy_dir = root / "deploy"
+    if deploy_dir.is_dir():
+        try:
+            for ent in sorted(deploy_dir.iterdir(), key=lambda p: p.name):
+                if ent.name.startswith(".") or not ent.is_file():
+                    continue
+                n = ent.name
+                if (
+                    re.match(r"^[Cc]addyfile", n)
+                    or n.endswith(".service")
+                    or re.search(r"\.(ya?ml|toml|sh)$", n)
+                    or re.search(r"Dockerfile", n, re.I)
+                ):
+                    deploy.append(f"deploy/{n}")
+        except OSError:
+            pass
+    deploy.sort()
+
+    ci_workflows = []
+    wf_dir = root / ".github" / "workflows"
+    if wf_dir.is_dir():
+        try:
+            for ent in sorted(wf_dir.iterdir(), key=lambda p: p.name):
+                if ent.is_file() and re.search(r"\.(ya?ml)$", ent.name, re.I):
+                    ci_workflows.append(ent.name)
+        except OSError:
+            pass
+
+    return {"configs": configs, "deploy": deploy, "ci_workflows": ci_workflows}
 
 
 def scan_languages(root: Path):
@@ -123,6 +327,8 @@ def detect_repo_facts(root: Path):
         "manifests": {}, "signals": {}, "package_manager": None,
         "readme_excerpt": "", "tree": [],
         "languages": {}, "file_types": {}, "notable": [],
+        "env_templates": {}, "env_keys": [], "service_hints": [],
+        "shape_configs": {}, "deploy_signals": [], "ci_workflows": [],
     }
     facts["manifests"].update(collect_manifests(root))
     facts["package_manager"] = detect_package_manager(root)
@@ -155,8 +361,21 @@ def detect_repo_facts(root: Path):
     facts["languages"] = census["languages"]
     facts["file_types"] = census["file_types"]
     facts["notable"] = census["notable"]
-    facts["has_ci"] = (root / ".github" / "workflows").exists()
-    facts["has_docker"] = (root / "Dockerfile").exists() or (root / "docker-compose.yml").exists()
+
+    facts["env_templates"] = collect_env_templates(root)
+    all_env_keys = set()
+    for keys in facts["env_templates"].values():
+        all_env_keys.update(keys)
+    facts["env_keys"] = sorted(all_env_keys)
+    facts["service_hints"] = service_hints_from_env_keys(facts["env_keys"])
+
+    shape = collect_shape_signals(root)
+    facts["shape_configs"] = shape["configs"]
+    facts["deploy_signals"] = shape["deploy"]
+    facts["ci_workflows"] = shape["ci_workflows"]
+
+    facts["has_ci"] = bool(facts["ci_workflows"]) or (root / ".github" / "workflows").exists()
+    facts["has_docker"] = any(re.search(r"docker", d, re.I) for d in facts["deploy_signals"])
     try:
         remote = subprocess.run(["git", "-C", str(root), "remote", "get-url", "origin"],
                                  capture_output=True, text=True, timeout=5)
@@ -182,6 +401,12 @@ def inputs_fingerprint(facts):
     lines.extend(["languages", "\n".join(sorted(f"{k}:{v}" for k, v in facts.get("languages", {}).items()))])
     lines.extend(["fileTypes", "\n".join(sorted(f"{k}:{v}" for k, v in facts.get("file_types", {}).items()))])
     lines.extend(["notable", "\n".join(sorted(facts.get("notable", [])))])
+    for k, keys in sorted(facts.get("env_templates", {}).items()):
+        lines.extend([f"envTemplate:{k}", "\n".join(sorted(keys))])
+    for k, v in sorted(facts.get("shape_configs", {}).items()):
+        lines.extend([f"shapeConfig:{k}", v])
+    lines.extend(["deploySignals", "\n".join(sorted(facts.get("deploy_signals", [])))])
+    lines.extend(["ciWorkflows", "\n".join(sorted(facts.get("ci_workflows", [])))])
     pm = facts.get("package_manager")
     lines.extend(["packageManager", "" if pm is None else str(pm)])
     lines.extend(["hasCi", "1" if facts.get("has_ci") else "0"])
@@ -251,11 +476,27 @@ def build_user_prompt(facts):
         parts.append("Notable source files: " + ", ".join(facts["notable"][:20]))
     parts.append(f"Detected package manager (from lockfile): {facts.get('package_manager')}")
     parts.append(f"Has CI config: {facts.get('has_ci')}")
+    if facts.get("ci_workflows"):
+        parts.append("CI workflow files: " + ", ".join(facts["ci_workflows"]))
     parts.append(f"Has Docker config: {facts.get('has_docker')}")
+    if facts.get("deploy_signals"):
+        parts.append("Deploy/hosting signals: " + ", ".join(facts["deploy_signals"]))
+    if facts.get("env_keys"):
+        parts.append(
+            "Env template keys (names only; from .env.example-style files — never real .env): "
+            + ", ".join(facts["env_keys"])
+        )
+    if facts.get("service_hints"):
+        parts.append(
+            "Inferred third-party services from env key prefixes: "
+            + "; ".join(facts["service_hints"])
+        )
     if not facts["manifests"]:
         parts.append("No package-manager manifest was found; use README and signal files.")
     for name, content in sorted(facts["manifests"].items()):
         parts.append(f"\n--- {name} ---\n{content}")
+    for name, content in sorted(facts.get("shape_configs", {}).items()):
+        parts.append(f"\n--- {name} (excerpt) ---\n{content}")
     for name, content in sorted(facts["signals"].items()):
         parts.append(f"\n--- {name} ---\n{content}")
     if facts["readme_excerpt"]:
@@ -381,6 +622,34 @@ def enrich_data(data, facts):
         print(f"Truncating key_dependencies from {len(deps)} to {MAX_DEPS}", file=sys.stderr)
         out["key_dependencies"] = deps[:MAX_DEPS]
 
+    services = out.get("services") or []
+    if isinstance(services, list) and len(services) > MAX_SERVICES:
+        print(f"Truncating services from {len(services)} to {MAX_SERVICES}", file=sys.stderr)
+        out["services"] = services[:MAX_SERVICES]
+
+    build = out.get("build")
+    if not isinstance(build, dict):
+        build = {}
+    else:
+        build = dict(build)
+    if not build.get("package_manager") and facts.get("package_manager"):
+        build["package_manager"] = facts["package_manager"]
+    if (
+        (not build.get("ci") or str(build.get("ci")).lower() == "unknown")
+        and facts.get("ci_workflows")
+    ):
+        build["ci"] = "GitHub Actions (" + ", ".join(facts["ci_workflows"]) + ")"
+    out["build"] = build
+
+    stack = out.get("stack")
+    if isinstance(stack, dict):
+        coerced = {}
+        for k, v in stack.items():
+            if v is None:
+                continue
+            coerced[k] = ", ".join(str(x) for x in v) if isinstance(v, list) else str(v)
+        out["stack"] = coerced
+
     return out
 
 
@@ -406,6 +675,18 @@ def validate_frontmatter_data(fm):
                 errors.append(f"key_dependencies[{i}].name required")
             if not isinstance(d, dict) or not d.get("purpose"):
                 errors.append(f"key_dependencies[{i}].purpose required")
+    services = fm.get("services")
+    if services is not None:
+        if not isinstance(services, list):
+            errors.append("services must be an array when present")
+        else:
+            if len(services) > MAX_SERVICES:
+                errors.append(f"services max {MAX_SERVICES}")
+            for i, s in enumerate(services):
+                if not isinstance(s, dict) or not s.get("name"):
+                    errors.append(f"services[{i}].name required")
+                if not isinstance(s, dict) or not s.get("role"):
+                    errors.append(f"services[{i}].role required")
     gen = fm.get("generated") or {}
     if not isinstance(gen.get("date"), str) or not isinstance(gen.get("generator"), str):
         errors.append("generated.date and generated.generator are required")
@@ -429,6 +710,9 @@ def build_frontmatter(data, generator_label, fingerprint, consulting_link=None, 
         fm["repository"] = data["repository"]
     fm["stack"] = data.get("stack") or {}
     fm["key_dependencies"] = data.get("key_dependencies") or []
+    services = data.get("services") or []
+    if isinstance(services, list) and services:
+        fm["services"] = services[:MAX_SERVICES]
     fm["build"] = data.get("build") or {}
     fm["generated"] = {
         "date": datetime.date.today().isoformat(),
@@ -448,7 +732,14 @@ VIEWER_PREFIX = "af1."
 MAX_VIEWER_URL_LEN = 1600
 
 
-def build_viewer_payload(fm, include_build=True, include_dep_purpose=True, max_deps=8):
+def build_viewer_payload(
+    fm,
+    include_build=True,
+    include_dep_purpose=True,
+    include_services=True,
+    max_deps=8,
+    max_services=6,
+):
     deps = []
     for d in (fm.get("key_dependencies") or [])[:max_deps]:
         item = {"n": d["name"]}
@@ -464,6 +755,14 @@ def build_viewer_payload(fm, include_build=True, include_dep_purpose=True, max_d
         "stack": fm.get("stack") or {},
         "deps": deps,
     }
+    if include_services and fm.get("services"):
+        payload["svc"] = [
+            {"n": s["name"], "r": s["role"]}
+            for s in fm["services"][:max_services]
+            if isinstance(s, dict) and s.get("name") and s.get("role")
+        ]
+        if not payload["svc"]:
+            del payload["svc"]
     if include_build and fm.get("build"):
         build = {
             k: v for k, v in fm["build"].items()
@@ -487,11 +786,16 @@ def encode_viewer_hash(payload):
 
 def viewer_url_for(fm):
     attempts = [
-        dict(include_build=True, include_dep_purpose=True, max_deps=8),
-        dict(include_build=False, include_dep_purpose=True, max_deps=8),
-        dict(include_build=False, include_dep_purpose=True, max_deps=5),
-        dict(include_build=False, include_dep_purpose=False, max_deps=5),
-        dict(include_build=False, include_dep_purpose=False, max_deps=3),
+        dict(include_build=True, include_dep_purpose=True, include_services=True,
+             max_deps=8, max_services=6),
+        dict(include_build=False, include_dep_purpose=True, include_services=True,
+             max_deps=8, max_services=6),
+        dict(include_build=False, include_dep_purpose=True, include_services=True,
+             max_deps=5, max_services=4),
+        dict(include_build=False, include_dep_purpose=False, include_services=True,
+             max_deps=5, max_services=4),
+        dict(include_build=False, include_dep_purpose=False, include_services=False,
+             max_deps=3, max_services=0),
     ]
     url = ""
     for opts in attempts:
@@ -514,6 +818,14 @@ def render_app_facts(fm, consulting_link=None, consulting_name=None, viewer_url=
         dep_lines = "\n".join(f"- `{d['name']}` — {d['purpose']}" for d in fm["key_dependencies"])
     else:
         dep_lines = "_None listed_"
+
+    services = fm.get("services") or []
+    if services:
+        services_block = "\n### Services\n\n" + "\n".join(
+            f"- **{s['name']}** — {s['role']}" for s in services
+        ) + "\n"
+    else:
+        services_block = ""
 
     build_entries = [
         (k, v) for k, v in (fm.get("build") or {}).items()
@@ -561,7 +873,7 @@ Curated stack label for this repository — aimed at a ~10 second read.
 ### Key dependencies
 
 {dep_lines}
-{build_block}
+{services_block}{build_block}
 ---
 {footer}
 

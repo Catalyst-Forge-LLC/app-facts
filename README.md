@@ -64,6 +64,11 @@ key_dependencies:
     purpose: Server state and caching
   - name: zod
     purpose: Schema validation
+services:
+  - name: Stripe
+    role: Billing
+  - name: PostHog
+    role: Product analytics
 build:
   package_manager: pnpm
   test: Vitest + Playwright
@@ -100,7 +105,7 @@ Both read the same inputs, use the same prompt, and emit byte-for-byte comparabl
 
 ### What the model actually sees
 
-Only **manifest files** (root or one level down — `package.json`, `pyproject.toml`, `requirements.txt`, `Cargo.toml`, and friends), a few **signal files** (`LICENSE`, `SPEC.md`, …), a short **README excerpt**, and a top-level file listing. Repos without a package manifest still work when a README (or signals) describe the project. **Your source code is never sent.** Use the `ollama` provider if you want nothing to leave your machine at all.
+Only **manifest summaries** (root or one level down — structured `package.json` dependency *names*, `pyproject.toml`, …), **framework/deploy/CI signals**, `.env.example`-style templates (**key names only** — never real `.env` files), a few **signal files** (`LICENSE`, `SPEC.md`, …), a short **README excerpt**, a language census, and a top-level file listing. Repos without a package manifest still work when a README (or signals) describe the project. **Your source code and secrets are never sent.** Use the `ollama` provider if you want nothing to leave your machine at all.
 
 ## Install & run
 
@@ -239,9 +244,9 @@ python3 generator/generate_app_facts.py TARGET --check
 
 ## How it works
 
-1. **Scan.** Detect manifest files (root + one subdirectory deep), signal files, the package manager (from lockfiles), a README excerpt, CI/Docker presence, and the git remote.
-2. **Prompt.** Send that curated summary — never your source — to the chosen LLM using the shared [`generator/prompt.md`](./generator/prompt.md) (*curate, not dump*; max 8 key dependencies).
-3. **Enrich.** Autofill `repository` from `git remote` and `license` from `LICENSE*` when the model leaves them blank; coerce `status` to the allowed enum; stamp `generated.inputs_fingerprint`.
+1. **Scan.** Detect manifests (structured `package.json` summaries), framework/deploy/CI signals, env-template **keys**, signal files, language census, package manager (from lockfiles), README excerpt, and the git remote.
+2. **Prompt.** Send that curated summary — never source or secrets — to the chosen LLM using the shared [`generator/prompt.md`](./generator/prompt.md) (*curate, not dump*; max 8 key dependencies; optional max 6 services).
+3. **Enrich.** Autofill `repository` from `git remote`, `license` from `LICENSE*` / README, and `build.package_manager` / CI when blank; coerce `status` to the allowed enum; stamp `generated.inputs_fingerprint`.
 4. **Validate + render.** Check required fields against the schema rules, write YAML frontmatter, a denser Markdown body (with a link to the visual label), and `APP_FACTS.png` — a QR code to `https://appfacts.dev/v#…` carrying a compressed facts payload (no backend).
 
 ## Validating a file

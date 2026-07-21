@@ -10,7 +10,13 @@ const VIEWER_PREFIX = "af1.";
 /** Soft cap so phone cameras can still read the QR. */
 const MAX_VIEWER_URL_LEN = 1600;
 
-function buildViewerPayload(fm, { includeBuild = true, includeDepPurpose = true, maxDeps = 8 } = {}) {
+function buildViewerPayload(fm, {
+  includeBuild = true,
+  includeDepPurpose = true,
+  includeServices = true,
+  maxDeps = 8,
+  maxServices = 6,
+} = {}) {
   const deps = (fm.key_dependencies || []).slice(0, maxDeps).map((d) => {
     const item = { n: d.name };
     if (includeDepPurpose && d.purpose) item.p = d.purpose;
@@ -25,6 +31,12 @@ function buildViewerPayload(fm, { includeBuild = true, includeDepPurpose = true,
     stack: fm.stack || {},
     deps,
   };
+  if (includeServices && Array.isArray(fm.services) && fm.services.length) {
+    payload.svc = fm.services.slice(0, maxServices).map((s) => ({
+      n: s.name,
+      r: s.role,
+    }));
+  }
   if (includeBuild && fm.build && Object.keys(fm.build).length) {
     const build = {};
     for (const [k, val] of Object.entries(fm.build)) {
@@ -45,11 +57,11 @@ function encodeViewerHash(payload) {
 
 function viewerUrlFor(fm) {
   const attempts = [
-    { includeBuild: true, includeDepPurpose: true, maxDeps: 8 },
-    { includeBuild: false, includeDepPurpose: true, maxDeps: 8 },
-    { includeBuild: false, includeDepPurpose: true, maxDeps: 5 },
-    { includeBuild: false, includeDepPurpose: false, maxDeps: 5 },
-    { includeBuild: false, includeDepPurpose: false, maxDeps: 3 },
+    { includeBuild: true, includeDepPurpose: true, includeServices: true, maxDeps: 8, maxServices: 6 },
+    { includeBuild: false, includeDepPurpose: true, includeServices: true, maxDeps: 8, maxServices: 6 },
+    { includeBuild: false, includeDepPurpose: true, includeServices: true, maxDeps: 5, maxServices: 4 },
+    { includeBuild: false, includeDepPurpose: false, includeServices: true, maxDeps: 5, maxServices: 4 },
+    { includeBuild: false, includeDepPurpose: false, includeServices: false, maxDeps: 3, maxServices: 0 },
   ];
   let url = "";
   for (const opts of attempts) {

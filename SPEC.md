@@ -21,7 +21,7 @@ The file has two parts:
 | `status` | enum | One of: `active`, `maintenance`, `archived`, `experimental` |
 | `license` | string | SPDX identifier, e.g. `"MIT"`, or `"UNKNOWN"` |
 | `stack` | map<string,string> | Layer name → choice, e.g. `language: TypeScript` |
-| `key_dependencies` | list of `{name, purpose}` | Curated, not exhaustive — **max 8** (may be empty) |
+| `key_dependencies` | list of `{name, purpose}` | Curated packages — **max 8** (may be empty) |
 | `build` | map<string,string> | e.g. `package_manager`, `test`, `ci` |
 | `generated` | object | `date`, `generator`; optional `inputs_fingerprint` |
 
@@ -31,6 +31,7 @@ The file has two parts:
 |---|---|---|
 | `homepage` | string (URL) | |
 | `repository` | string (URL) | Recommended when a public git remote exists |
+| `services` | list of `{name, role}` | Curated third-party / hosted integrations — **max 6** |
 | `generated.inputs_fingerprint` | string | 16-char hex SHA-256 prefix of scanned inputs; enables `--check` |
 | `credits.generated_with` | string (URL) | e.g. `"https://appfacts.dev"` |
 | `credits.built_by` | string | Author/consultancy name + link |
@@ -38,7 +39,9 @@ The file has two parts:
 ## Conventions
 
 - Curate, don't dump. `key_dependencies` is not `package.json`'s full tree — up to 8 items that actually explain the app's shape.
-- `stack` keys are free-form (not a fixed enum) since apps vary — but common keys are `language`, `runtime`, `framework`, `styling`, `state`, `backend`, `database`, `hosting`.
+- `services` is for hosted integrations (Stripe, PostHog, Resend, …), separate from package deps.
+- `stack` keys are free-form (not a fixed enum) since apps vary — but common keys are `language`, `runtime`, `framework`, `styling`, `state`, `backend`, `database`, `hosting`, plus when evidenced `ai`, `billing`, `analytics`, `email`, `scraping`, `auth`.
+- Generators may read `.env.example`-style templates for **key names only**; they must never read real `.env` files.
 - Keep the body table short enough to read in ~10 seconds.
 - Re-generate rather than hand-maintain where possible — see `generator/`.
 - Machine validation uses [`site/schema/app-facts.schema.json`](./site/schema/app-facts.schema.json), published at `https://appfacts.dev/schema/app-facts.schema.json`.
@@ -53,7 +56,7 @@ Generators may also emit `APP_FACTS.png`, a QR code whose URL is:
 
 `https://appfacts.dev/v#af1.<base64url(zlib(json))>`
 
-The JSON is a compact subset of the frontmatter (`name`, `type`, `status`, `license`, `stack`, `deps`, optional `build` / links). The static page at `/v` inflates the fragment and renders a nutrition-label UI. No backend storage.
+The JSON is a compact subset of the frontmatter (`name`, `type`, `status`, `license`, `stack`, `deps`, optional `svc` / `build` / links). The static page at `/v` inflates the fragment and renders a nutrition-label UI. No backend storage.
 
 ## Versioning
 
