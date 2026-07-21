@@ -22,6 +22,10 @@ Schema (all fields required unless noted):
 
 Rules:
 - Prefer dependencies that appear in provided manifest content. Never invent package names.
+- Include the primary framework/runtime package (e.g. `@sveltejs/kit`, `next`, `react`, `express`,
+  `fastapi`) among key_dependencies when one is present in the manifest.
+- Only list a dependency you can see in the manifest content. If two libraries do the same job,
+  list the one actually present (e.g. do not add `puppeteer` when only `playwright` is a dependency).
 - Prefer services that appear in "Inferred third-party services from env key prefixes" and/or
   matching dependency names. Do not invent services from a single ambiguous key.
 - Never request or invent secret values. Env facts are KEY NAMES only from .env.example-style

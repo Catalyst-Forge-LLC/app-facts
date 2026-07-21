@@ -913,8 +913,22 @@ def viewer_url_for(fm):
     return url
 
 
+# Layer/build keys that should render as all-caps acronyms. Keep in sync with
+# the JS generator and site/v/index.html.
+LABEL_ACRONYMS = {
+    "AI", "CI", "CD", "API", "DB", "UI", "UX", "URL", "CLI", "SDK", "QA",
+    "CSS", "HTML", "SSR", "SPA", "ORM", "CDN", "DNS", "TLS", "HTTP", "HTTPS",
+    "IDE", "OS", "VM", "PWA", "GPU", "CPU", "ID", "IO", "JSON", "YAML", "XML",
+    "SQL", "PHP", "SEO", "CMS", "LLM",
+}
+
+
 def _title_case(s):
-    return str(s).replace("_", " ").title()
+    words = []
+    for w in str(s).replace("_", " ").split():
+        up = w.upper()
+        words.append(up if up in LABEL_ACRONYMS else (w[:1].upper() + w[1:]))
+    return " ".join(words)
 
 
 def render_app_facts(fm, consulting_link=None, consulting_name=None, viewer_url=None):

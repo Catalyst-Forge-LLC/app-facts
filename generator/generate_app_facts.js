@@ -1013,8 +1013,22 @@ function buildFrontmatter(data, generatorLabel, fingerprint, consultingLink, con
   return fm;
 }
 
+// Layer/build keys that should render as all-caps acronyms. Keep in sync with
+// the Python generator and site/v/index.html.
+const LABEL_ACRONYMS = new Set([
+  "AI", "CI", "CD", "API", "DB", "UI", "UX", "URL", "CLI", "SDK", "QA",
+  "CSS", "HTML", "SSR", "SPA", "ORM", "CDN", "DNS", "TLS", "HTTP", "HTTPS",
+  "IDE", "OS", "VM", "PWA", "GPU", "CPU", "ID", "IO", "JSON", "YAML", "XML",
+  "SQL", "PHP", "SEO", "CMS", "LLM",
+]);
+
 function titleCase(s) {
-  return String(s).replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return String(s).replace(/_/g, " ").split(/\s+/).map((w) => {
+    if (!w) return w;
+    const up = w.toUpperCase();
+    if (LABEL_ACRONYMS.has(up)) return up;
+    return w.charAt(0).toUpperCase() + w.slice(1);
+  }).join(" ");
 }
 
 function renderAppFacts(fm, consultingLink, consultingName, viewerUrl) {
