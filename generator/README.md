@@ -1,10 +1,12 @@
 # AppFacts generator
 
-Scans a target repo's manifest files (`package.json`, `pyproject.toml`, `requirements.txt`,
-`Cargo.toml`, `go.mod`, …) at the root or one level down, plus signal files
-(`LICENSE`, `SPEC.md`, …) and the README, sends a curated summary to an LLM, and
-writes `APP_FACTS.md` (+ `APP_FACTS.png`). Works for docs/spec/tooling repos that have
-no package manifest, as long as a README or signal file is present.
+Scans a target repo's manifests (`package.json` as a structured dependency-name
+summary, `pyproject.toml`, `requirements.txt`, …) at the root or one level down,
+plus signal files, framework/deploy configs, CI workflows, `.env.example`-style
+templates (**key names only** — never real `.env` files), a language census, and
+the README. Sends a curated summary to an LLM and writes `APP_FACTS.md`
+(+ `APP_FACTS.png`). Works for docs/spec/tooling repos that have no package
+manifest, as long as a README or signal file is present.
 
 Both languages share [`prompt.md`](./prompt.md) so the system prompt cannot drift.
 
@@ -60,11 +62,12 @@ node generate_app_facts.js /path/to/my-app --check
 
 ## Notes
 
-- The model only sees manifests, signal files, and a README excerpt — never your source code.
+- The model sees manifests, framework/deploy signals, env-template **keys**, signal files, and a README excerpt — never source bodies and never real `.env` secrets.
+- Optional frontmatter `services` (max 6) captures hosted integrations (Stripe, PostHog, …) separately from package `key_dependencies`.
 - Output includes `generated.inputs_fingerprint` (16-char SHA-256 prefix of scanned inputs).
 - `--check` re-scans and fails if that fingerprint no longer matches.
-- Generators autofill `repository` from `git remote` and `license` from `LICENSE*` when missing.
-- Model JSON is validated before write (status enum, max 8 deps, required fields).
+- Generators autofill `repository` from `git remote` and `license` from `LICENSE*` / README when missing.
+- Model JSON is validated before write (status enum, max 8 deps, max 6 services, required fields).
 - `APP_FACTS.png` QR encodes `https://appfacts.dev/v#af1.…` — a compressed facts payload rendered by the static viewer (no server)
 - Relative `--output` paths are resolved under `TARGET`.
 - Schema: https://appfacts.dev/schema/app-facts.schema.json

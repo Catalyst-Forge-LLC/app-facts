@@ -228,6 +228,7 @@
     function renderLabel(data) {
       const stack = Object.entries(data.stack || {});
       const deps = Array.isArray(data.deps) ? data.deps.slice(0, 12) : [];
+      const services = Array.isArray(data.svc) ? data.svc.slice(0, 8) : [];
       const build = Object.entries(data.build || {}).slice(0, 12);
       const stackHtml = stack.slice(0, 16).map(([k, v], i, arr) => {
         const thick = i === arr.length - 1 ? " thick" : "";
@@ -238,6 +239,11 @@
             `<li><code>${esc(d && d.n)}</code>${d && d.p ? ` — ${esc(d.p)}` : ""}</li>`
           ).join("")}</ul>`
         : `<div class="row">None listed</div>`;
+      const servicesHtml = services.length
+        ? `<div class="section"><b>Services</b><ul class="deps">${services.map((s) =>
+            `<li><strong>${esc(s && s.n)}</strong>${s && s.r ? ` — ${esc(s.r)}` : ""}</li>`
+          ).join("")}</ul></div>`
+        : "";
       const buildHtml = build.length
         ? `<div class="section"><b>Build</b>${build.map(([k, v]) =>
             `<div class="row"><strong>${esc(titleCase(k))}</strong><span>${esc(v)}</span></div>`
@@ -272,6 +278,7 @@
         </div>
         ${stackHtml}
         <div class="section"><b>Key dependencies</b>${depsHtml}</div>
+        ${servicesHtml}
         ${buildHtml}
         <div class="links">${links.join("")}</div>
       </article>`;

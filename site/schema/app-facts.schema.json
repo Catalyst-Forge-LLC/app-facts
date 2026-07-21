@@ -39,7 +39,7 @@
       "type": "object",
       "additionalProperties": { "type": "string" },
       "minProperties": 1,
-      "description": "Free-form layer → choice map. Common keys: language, runtime, framework, styling, state, backend, database, hosting."
+      "description": "Free-form layer → choice map. Common keys: language, runtime, framework, styling, state, backend, database, hosting, ai, billing, analytics, email, scraping, auth."
     },
     "key_dependencies": {
       "type": "array",
@@ -50,6 +50,20 @@
         "properties": {
           "name": { "type": "string", "minLength": 1 },
           "purpose": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "services": {
+      "type": "array",
+      "maxItems": 6,
+      "description": "Optional curated third-party / hosted integrations (separate from package key_dependencies).",
+      "items": {
+        "type": "object",
+        "required": ["name", "role"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "role": { "type": "string", "minLength": 1 }
         },
         "additionalProperties": false
       }

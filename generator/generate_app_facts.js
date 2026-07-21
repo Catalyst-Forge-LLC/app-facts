@@ -39,6 +39,70 @@ const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", "venv", ".ve
 const VENDOR_DIRS = new Set(["vendor", "vendored", "third_party", "third-party", "bower_components", "external"]);
 const STATUS_ENUM = new Set(["active", "maintenance", "archived", "experimental"]);
 const MAX_DEPS = 8;
+const MAX_SERVICES = 6;
+
+/** Framework / tooling config files (root) — short excerpts for the model. */
+const FRAMEWORK_CONFIGS = [
+  "svelte.config.js", "svelte.config.ts", "svelte.config.mjs",
+  "next.config.js", "next.config.mjs", "next.config.ts",
+  "nuxt.config.js", "nuxt.config.ts", "nuxt.config.mjs",
+  "astro.config.mjs", "astro.config.ts", "astro.config.js",
+  "vite.config.ts", "vite.config.js", "vite.config.mjs",
+  "angular.json", "remix.config.js", "vue.config.js",
+  "pnpm-workspace.yaml", "lerna.json", "nx.json", "turbo.json",
+];
+/** Deploy / hosting signals (root or under deploy/). */
+const DEPLOY_FILES = [
+  "Dockerfile", "docker-compose.yml", "docker-compose.yaml",
+  "fly.toml", "vercel.json", "netlify.toml", "wrangler.toml", "wrangler.jsonc",
+  "railway.toml", "render.yaml", "Caddyfile", "Procfile", "app.yaml",
+];
+
+/**
+ * Well-known env key prefixes → service hints (names only; never values).
+ * Keep in sync with the Python generator.
+ */
+const ENV_SERVICE_HINTS = [
+  [/^STRIPE_/i, "Stripe (billing)"],
+  [/^PUBLIC_STRIPE_/i, "Stripe (billing)"],
+  [/^POSTHOG_/i, "PostHog (analytics)"],
+  [/^PUBLIC_POSTHOG_/i, "PostHog (analytics)"],
+  [/^ANTHROPIC_/i, "Anthropic (LLM)"],
+  [/^OPENAI_/i, "OpenAI (LLM)"],
+  [/^GEMINI_/i, "Google Gemini (LLM)"],
+  [/^XAI_/i, "xAI (LLM)"],
+  [/^OLLAMA_/i, "Ollama (local LLM)"],
+  [/^LLM_/i, "LLM provider"],
+  [/^RESEND_/i, "Resend (email)"],
+  [/^SENDGRID_/i, "SendGrid (email)"],
+  [/^MAILGUN_/i, "Mailgun (email)"],
+  [/^POSTMARK_/i, "Postmark (email)"],
+  [/^TAVILY_/i, "Tavily (search/scrape)"],
+  [/^BRIGHT_DATA_/i, "Bright Data (scrape)"],
+  [/^POCKETBASE_/i, "PocketBase"],
+  [/^OUTPOST_/i, "Outpost (scrape edge)"],
+  [/^SENTRY_/i, "Sentry"],
+  [/^AWS_/i, "AWS"],
+  [/^S3_/i, "S3-compatible storage"],
+  [/^CLOUDFLARE_/i, "Cloudflare"],
+  [/^CF_/i, "Cloudflare"],
+  [/^OAUTH_GOOGLE/i, "Google OAuth"],
+  [/^OAUTH_MICROSOFT/i, "Microsoft OAuth"],
+  [/^OAUTH_LINKEDIN/i, "LinkedIn OAuth"],
+  [/^GOOGLE_CLIENT_/i, "Google OAuth"],
+  [/^AUTH0_/i, "Auth0"],
+  [/^CLERK_/i, "Clerk (auth)"],
+  [/^SUPABASE_/i, "Supabase"],
+  [/^FIREBASE_/i, "Firebase"],
+  [/^DATABASE_URL$/i, "Database (URL)"],
+  [/^POSTGRES_/i, "PostgreSQL"],
+  [/^MYSQL_/i, "MySQL"],
+  [/^REDIS_/i, "Redis"],
+  [/^TWILIO_/i, "Twilio"],
+  [/^SLACK_/i, "Slack"],
+  [/^GITHUB_/i, "GitHub"],
+  [/^VERCEL_/i, "Vercel"],
+];
 
 // Map file extension -> language/tech, so polyglot repos aren't collapsed to
 // whatever happens to have a manifest. Keep in sync with the Python generator.
@@ -162,12 +226,87 @@ function readText(p, limit = 6000) {
   }
 }
 
+/** True for env *templates* only — never real `.env` / `.env.local` / `.env.prod`. */
+function isEnvTemplateName(name) {
+  const n = String(name).toLowerCase();
+  if (n === "env.example") return true;
+  if (/^\.env\.(example|sample|template)$/.test(n)) return true;
+  if (/^\.env\.[^.]+\.(example|sample|template)$/.test(n)) return true;
+  if (/^[^.].*\.env\.(example|sample|template)$/.test(n)) return true;
+  return false;
+}
+
+/** Extract KEY names only from an env template (including commented `# KEY=`). */
+function extractEnvKeys(text) {
+  const keys = new Set();
+  for (const line of String(text).split("\n")) {
+    const t = line.trim();
+    if (!t) continue;
+    const m = t.match(/^(?:export\s+|#\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*=/);
+    if (m) keys.add(m[1]);
+  }
+  return [...keys].sort();
+}
+
+function serviceHintsFromEnvKeys(keys) {
+  const hints = new Set();
+  for (const key of keys) {
+    for (const [re, label] of ENV_SERVICE_HINTS) {
+      if (re.test(key)) hints.add(label);
+    }
+  }
+  return [...hints].sort();
+}
+
+/**
+ * Structured package.json summary — full dependency *names*, no 6k truncation.
+ * Deterministic text; keep in sync with Python.
+ */
+function summarizePackageJson(filePath) {
+  let raw;
+  try {
+    raw = fs.readFileSync(filePath, "utf8").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  } catch {
+    return "";
+  }
+  let pkg;
+  try {
+    pkg = JSON.parse(raw);
+  } catch {
+    return raw.slice(0, 6000);
+  }
+  const lines = ["(structured package.json summary — dependency names only)"];
+  if (pkg.name != null) lines.push(`name: ${pkg.name}`);
+  if (pkg.private === true) lines.push("private: true");
+  if (pkg.type != null) lines.push(`type: ${pkg.type}`);
+  if (pkg.license != null) lines.push(`license: ${pkg.license}`);
+  if (pkg.packageManager != null) lines.push(`packageManager: ${pkg.packageManager}`);
+  if (pkg.engines && typeof pkg.engines === "object") {
+    for (const k of Object.keys(pkg.engines).sort()) {
+      lines.push(`engines.${k}: ${pkg.engines[k]}`);
+    }
+  }
+  const scriptKeys = pkg.scripts && typeof pkg.scripts === "object"
+    ? Object.keys(pkg.scripts).sort()
+    : [];
+  if (scriptKeys.length) lines.push(`scripts: ${scriptKeys.join(", ")}`);
+  for (const field of ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"]) {
+    const obj = pkg[field];
+    if (!obj || typeof obj !== "object") continue;
+    const names = Object.keys(obj).sort();
+    if (names.length) lines.push(`${field}: ${names.join(", ")}`);
+  }
+  return lines.join("\n");
+}
+
 function collectManifests(dir, labelPrefix = "") {
   const found = {};
   for (const m of MANIFESTS) {
     const p = path.join(dir, m);
     if (fs.existsSync(p) && fs.statSync(p).isFile()) {
-      found[labelPrefix + m] = readText(p);
+      found[labelPrefix + m] = m === "package.json"
+        ? summarizePackageJson(p)
+        : readText(p);
     }
   }
   return found;
@@ -178,6 +317,89 @@ function detectPackageManager(dir) {
     if (fs.existsSync(path.join(dir, lock))) return pm;
   }
   return null;
+}
+
+function collectEnvTemplates(root) {
+  /** @type {Record<string, string[]>} */
+  const templates = {};
+  function scanDir(dir, labelPrefix) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir);
+    } catch {
+      return;
+    }
+    for (const name of entries.sort()) {
+      if (!isEnvTemplateName(name)) continue;
+      const p = path.join(dir, name);
+      try {
+        if (!fs.statSync(p).isFile()) continue;
+      } catch {
+        continue;
+      }
+      // Keys only — values from templates are discarded after extraction.
+      templates[labelPrefix + name] = extractEnvKeys(readText(p, 100000));
+    }
+  }
+  scanDir(root, "");
+  try {
+    for (const item of fs.readdirSync(root).sort()) {
+      if (item.startsWith(".") || SKIP_DIRS.has(item)) continue;
+      const sub = path.join(root, item);
+      try {
+        if (fs.statSync(sub).isDirectory()) scanDir(sub, item + "/");
+      } catch { /* ignore */ }
+    }
+  } catch { /* ignore */ }
+  return templates;
+}
+
+function collectShapeSignals(root) {
+  /** @type {Record<string, string>} */
+  const configs = {};
+  for (const name of FRAMEWORK_CONFIGS) {
+    const p = path.join(root, name);
+    if (fs.existsSync(p) && fs.statSync(p).isFile()) {
+      configs[name] = readText(p, 2000);
+    }
+  }
+
+  const deploy = [];
+  for (const name of DEPLOY_FILES) {
+    const p = path.join(root, name);
+    if (fs.existsSync(p) && fs.statSync(p).isFile()) deploy.push(name);
+  }
+  const deployDir = path.join(root, "deploy");
+  if (fs.existsSync(deployDir) && fs.statSync(deployDir).isDirectory()) {
+    try {
+      for (const name of fs.readdirSync(deployDir).sort()) {
+        if (name.startsWith(".")) continue;
+        const p = path.join(deployDir, name);
+        if (!fs.statSync(p).isFile()) continue;
+        if (
+          /^(Caddyfile|[Cc]addyfile)/.test(name)
+          || /\.service$/.test(name)
+          || /\.(ya?ml|toml|sh)$/.test(name)
+          || /Dockerfile/i.test(name)
+        ) {
+          deploy.push(`deploy/${name}`);
+        }
+      }
+    } catch { /* ignore */ }
+  }
+  deploy.sort();
+
+  const ciWorkflows = [];
+  const wfDir = path.join(root, ".github", "workflows");
+  if (fs.existsSync(wfDir) && fs.statSync(wfDir).isDirectory()) {
+    try {
+      for (const name of fs.readdirSync(wfDir).sort()) {
+        if (/\.(ya?ml)$/i.test(name)) ciWorkflows.push(name);
+      }
+    } catch { /* ignore */ }
+  }
+
+  return { configs, deploy, ciWorkflows };
 }
 
 /** Census of source files by extension (recursive, bounded, deterministic). */
@@ -224,6 +446,8 @@ function detectRepoFacts(root) {
   const facts = {
     manifests: {}, signals: {}, packageManager: null,
     readmeExcerpt: "", tree: [], languages: {}, fileTypes: {}, notable: [],
+    envTemplates: {}, envKeys: [], serviceHints: [],
+    shapeConfigs: {}, deploySignals: [], ciWorkflows: [],
     hasCi: false, hasDocker: false, gitRemote: null,
   };
 
@@ -264,8 +488,22 @@ function detectRepoFacts(root) {
   facts.fileTypes = census.fileTypes;
   facts.notable = census.notable;
 
-  facts.hasCi = fs.existsSync(path.join(root, ".github", "workflows"));
-  facts.hasDocker = fs.existsSync(path.join(root, "Dockerfile")) || fs.existsSync(path.join(root, "docker-compose.yml"));
+  facts.envTemplates = collectEnvTemplates(root);
+  const allEnvKeys = new Set();
+  for (const keys of Object.values(facts.envTemplates)) {
+    for (const k of keys) allEnvKeys.add(k);
+  }
+  facts.envKeys = [...allEnvKeys].sort();
+  facts.serviceHints = serviceHintsFromEnvKeys(facts.envKeys);
+
+  const shape = collectShapeSignals(root);
+  facts.shapeConfigs = shape.configs;
+  facts.deploySignals = shape.deploy;
+  facts.ciWorkflows = shape.ciWorkflows;
+
+  facts.hasCi = facts.ciWorkflows.length > 0
+    || fs.existsSync(path.join(root, ".github", "workflows"));
+  facts.hasDocker = facts.deploySignals.some((d) => /docker/i.test(d));
 
   try {
     facts.gitRemote = execSync("git remote get-url origin", { cwd: root, stdio: ["pipe", "pipe", "ignore"] })
@@ -301,6 +539,14 @@ function inputsFingerprint(facts) {
   lines.push("languages", Object.entries(facts.languages || {}).map(([k, v]) => `${k}:${v}`).sort().join("\n"));
   lines.push("fileTypes", Object.entries(facts.fileTypes || {}).map(([k, v]) => `${k}:${v}`).sort().join("\n"));
   lines.push("notable", [...(facts.notable || [])].sort().join("\n"));
+  for (const [k, keys] of Object.entries(sortedObject(facts.envTemplates || {}))) {
+    lines.push(`envTemplate:${k}`, [...keys].sort().join("\n"));
+  }
+  for (const [k, v] of Object.entries(sortedObject(facts.shapeConfigs || {}))) {
+    lines.push(`shapeConfig:${k}`, v);
+  }
+  lines.push("deploySignals", [...(facts.deploySignals || [])].sort().join("\n"));
+  lines.push("ciWorkflows", [...(facts.ciWorkflows || [])].sort().join("\n"));
   lines.push("packageManager", facts.packageManager == null ? "" : String(facts.packageManager));
   lines.push("hasCi", facts.hasCi ? "1" : "0");
   lines.push("hasDocker", facts.hasDocker ? "1" : "0");
@@ -361,12 +607,30 @@ function buildUserPrompt(facts) {
   }
   parts.push(`Detected package manager (from lockfile): ${facts.packageManager}`);
   parts.push(`Has CI config: ${facts.hasCi}`);
+  if (facts.ciWorkflows && facts.ciWorkflows.length) {
+    parts.push(`CI workflow files: ${facts.ciWorkflows.join(", ")}`);
+  }
   parts.push(`Has Docker config: ${facts.hasDocker}`);
+  if (facts.deploySignals && facts.deploySignals.length) {
+    parts.push(`Deploy/hosting signals: ${facts.deploySignals.join(", ")}`);
+  }
+  if (facts.envKeys && facts.envKeys.length) {
+    parts.push(
+      "Env template keys (names only; from .env.example-style files — never real .env): "
+      + facts.envKeys.join(", ")
+    );
+  }
+  if (facts.serviceHints && facts.serviceHints.length) {
+    parts.push(`Inferred third-party services from env key prefixes: ${facts.serviceHints.join("; ")}`);
+  }
   if (Object.keys(facts.manifests).length === 0) {
     parts.push("No package-manager manifest was found; use README and signal files.");
   }
   for (const [name, content] of Object.entries(sortedObject(facts.manifests))) {
     parts.push(`\n--- ${name} ---\n${content}`);
+  }
+  for (const [name, content] of Object.entries(sortedObject(facts.shapeConfigs || {}))) {
+    parts.push(`\n--- ${name} (excerpt) ---\n${content}`);
   }
   for (const [name, content] of Object.entries(sortedObject(facts.signals))) {
     parts.push(`\n--- ${name} ---\n${content}`);
@@ -503,6 +767,32 @@ function enrichData(data, facts) {
     out.key_dependencies = out.key_dependencies.slice(0, MAX_DEPS);
   }
 
+  if (Array.isArray(out.services) && out.services.length > MAX_SERVICES) {
+    console.warn(`Truncating services from ${out.services.length} to ${MAX_SERVICES}`);
+    out.services = out.services.slice(0, MAX_SERVICES);
+  }
+
+  // Deterministic build enrichment from scan facts.
+  out.build = out.build && typeof out.build === "object" && !Array.isArray(out.build)
+    ? { ...out.build }
+    : {};
+  if (!out.build.package_manager && facts.packageManager) {
+    out.build.package_manager = facts.packageManager;
+  }
+  if ((!out.build.ci || String(out.build.ci).toLowerCase() === "unknown") && facts.ciWorkflows?.length) {
+    out.build.ci = `GitHub Actions (${facts.ciWorkflows.join(", ")})`;
+  }
+
+  // Coerce stack values to strings (models sometimes emit arrays).
+  if (out.stack && typeof out.stack === "object" && !Array.isArray(out.stack)) {
+    const coerced = {};
+    for (const [k, v] of Object.entries(out.stack)) {
+      if (v == null) continue;
+      coerced[k] = Array.isArray(v) ? v.join(", ") : String(v);
+    }
+    out.stack = coerced;
+  }
+
   return out;
 }
 
@@ -525,6 +815,17 @@ function validateFrontmatterData(fm) {
       if (!d || typeof d.name !== "string" || !d.name) errors.push(`key_dependencies[${i}].name required`);
       if (!d || typeof d.purpose !== "string" || !d.purpose) errors.push(`key_dependencies[${i}].purpose required`);
     });
+  }
+  if (fm.services !== undefined && fm.services !== null) {
+    if (!Array.isArray(fm.services)) {
+      errors.push("services must be an array when present");
+    } else {
+      if (fm.services.length > MAX_SERVICES) errors.push(`services max ${MAX_SERVICES}`);
+      fm.services.forEach((s, i) => {
+        if (!s || typeof s.name !== "string" || !s.name) errors.push(`services[${i}].name required`);
+        if (!s || typeof s.role !== "string" || !s.role) errors.push(`services[${i}].role required`);
+      });
+    }
   }
   if (!fm.generated || typeof fm.generated.date !== "string" || typeof fm.generated.generator !== "string") {
     errors.push("generated.date and generated.generator are required");
@@ -582,6 +883,9 @@ function buildFrontmatter(data, generatorLabel, fingerprint, consultingLink, con
   if (data.repository) fm.repository = data.repository;
   fm.stack = data.stack || {};
   fm.key_dependencies = data.key_dependencies || [];
+  if (Array.isArray(data.services) && data.services.length) {
+    fm.services = data.services.slice(0, MAX_SERVICES);
+  }
   fm.build = data.build || {};
   fm.generated = {
     date: new Date().toISOString().slice(0, 10),
@@ -611,6 +915,11 @@ function renderAppFacts(fm, consultingLink, consultingName, viewerUrl) {
   const depLines = (fm.key_dependencies || []).length
     ? fm.key_dependencies.map((d) => `- \`${d.name}\` — ${d.purpose}`).join("\n")
     : "_None listed_";
+
+  const services = Array.isArray(fm.services) ? fm.services : [];
+  const servicesBlock = services.length
+    ? `\n### Services\n\n${services.map((s) => `- **${s.name}** — ${s.role}`).join("\n")}\n`
+    : "";
 
   const buildEntries = Object.entries(fm.build || {})
     .filter(([, v]) => v != null && String(v).toLowerCase() !== "unknown");
@@ -645,7 +954,7 @@ ${stackRows}
 ### Key dependencies
 
 ${depLines}
-${buildBlock}
+${servicesBlock}${buildBlock}
 ---
 ${footer}
 
