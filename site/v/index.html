@@ -176,8 +176,17 @@
 
     async function decodeHash(hash) {
       const raw = (hash || "").replace(/^#/, "");
-      if (!raw.startsWith(PREFIX)) {
+      if (!raw) {
         throw new Error("Missing AppFacts payload. Generate APP_FACTS.png with a recent generator, then scan it.");
+      }
+      const ver = raw.match(/^(af\d+)\./i);
+      if (!ver) {
+        throw new Error("Missing AppFacts payload. Generate APP_FACTS.png with a recent generator, then scan it.");
+      }
+      if (ver[1].toLowerCase() !== "af1") {
+        throw new Error(
+          `Label format ${ver[1]} is not supported — update your viewer. This page understands af1 only.`
+        );
       }
       const json = await inflateBytes(b64urlToBytes(raw.slice(PREFIX.length)));
       const data = JSON.parse(json);

@@ -71,3 +71,17 @@ node generate_app_facts.js /path/to/my-app --check
 - `APP_FACTS.png` QR encodes `https://appfacts.dev/v#af1.…` — a compressed facts payload rendered by the static viewer (no server)
 - Relative `--output` paths are resolved under `TARGET`.
 - Schema: https://appfacts.dev/schema/app-facts.schema.json
+- Compact `/v` payload: [`../SPEC-af1.md`](../SPEC-af1.md)
+- Fingerprint algorithm: [`../SPEC.md`](../SPEC.md) (Fingerprint canonicalization)
+
+## Tests
+
+```bash
+# Node (built-in node:test)
+node --test generator/test/af1_roundtrip.test.js generator/test/fingerprint.test.js
+
+# Python
+python -m unittest discover -s generator/test -p 'test_*.py' -v
+```
+
+Cross-runtime checks assert that Node and Python produce the same `inputs_fingerprint` for `generator/test/fixtures/mini-repo`.

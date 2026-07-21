@@ -18,7 +18,12 @@ const os = require("os");
 const crypto = require("crypto");
 const { execSync, execFileSync } = require("child_process");
 const { writeQrPng } = require("./qr.js");
-const { viewerUrlFor } = require("./viewer_codec.js");
+const {
+  viewerUrlFor,
+  buildViewerPayload,
+  encodeViewerHash,
+  decodeViewerHash,
+} = require("./viewer_codec.js");
 
 const MANIFESTS = [
   "package.json", "pyproject.toml", "Cargo.toml", "go.mod",
@@ -672,8 +677,9 @@ function normalizeRepoUrl(remote, root = null) {
 }
 
 function detectLicense(facts) {
+  const signals = facts.signals || {};
   const text = ["LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING"]
-    .map(n => facts.signals[n] || "").join("\n");
+    .map(n => signals[n] || "").join("\n");
   if (text) {
     if (/Apache License/i.test(text) && /Version 2\.0/i.test(text)) return "Apache-2.0";
     if (/GNU GENERAL PUBLIC LICENSE/i.test(text) && /Version 3/i.test(text)) return "GPL-3.0";
@@ -903,6 +909,11 @@ function enrichData(data, facts) {
       coerced[k] = Array.isArray(v) ? v.join(", ") : String(v);
     }
     out.stack = coerced;
+  }
+  // Schema requires ≥1 stack entry.
+  if (!out.stack || typeof out.stack !== "object" || Array.isArray(out.stack)
+      || Object.keys(out.stack).length < 1) {
+    out.stack = { language: "unknown" };
   }
 
   return out;
@@ -1191,7 +1202,20 @@ async function main() {
   }
 }
 
-main().catch(err => {
-  console.error(err.message || err);
-  process.exit(1);
-});
+module.exports = {
+  detectRepoFacts,
+  inputsFingerprint,
+  enrichData,
+  normalizeRepoUrl,
+  buildViewerPayload,
+  encodeViewerHash,
+  decodeViewerHash,
+  viewerUrlFor,
+};
+
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(err.message || err);
+    process.exit(1);
+  });
+}

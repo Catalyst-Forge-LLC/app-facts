@@ -12,7 +12,8 @@
 <p align="center">
   <a href="https://appfacts.dev">appfacts.dev</a> ·
   <a href="./SPEC.md">Spec</a> ·
-  <a href="./site/schema/app-facts.schema.json">Schema</a> ·
+  <a href="./SPEC-af1.md">af1 payload</a> ·
+  <a href="https://appfacts.dev/schema/app-facts.schema.json">Schema</a> ·
   <a href="./examples/APP_FACTS.md">Example</a>
 </p>
 

@@ -55,6 +55,24 @@ function encodeViewerHash(payload) {
   return VIEWER_PREFIX + compressed.toString("base64url");
 }
 
+/** Decode `af1.<payload>` (or a full `/v#…` URL / `#…` hash) → compact JSON object. */
+function decodeViewerHash(hashOrUrl) {
+  let raw = String(hashOrUrl || "");
+  const hashIdx = raw.indexOf("#");
+  if (hashIdx >= 0) raw = raw.slice(hashIdx + 1);
+  raw = raw.replace(/^#/, "");
+  const ver = raw.match(/^(af\d+)\./i);
+  if (!ver) throw new Error("Missing AppFacts afN payload prefix");
+  if (ver[1].toLowerCase() !== "af1") {
+    throw new Error(`Label format ${ver[1]} is not supported — update your viewer`);
+  }
+  const b64 = raw.slice(VIEWER_PREFIX.length);
+  const json = zlib.inflateSync(Buffer.from(b64, "base64url")).toString("utf8");
+  const data = JSON.parse(json);
+  if (!data || data.v !== 1 || !data.name) throw new Error("Unrecognized or incomplete payload");
+  return data;
+}
+
 function viewerUrlFor(fm) {
   const attempts = [
     { includeBuild: true, includeDepPurpose: true, includeServices: true, maxDeps: 8, maxServices: 6 },
@@ -74,7 +92,9 @@ function viewerUrlFor(fm) {
 module.exports = {
   VIEWER_ORIGIN,
   VIEWER_PREFIX,
+  MAX_VIEWER_URL_LEN,
   buildViewerPayload,
   encodeViewerHash,
+  decodeViewerHash,
   viewerUrlFor,
 };

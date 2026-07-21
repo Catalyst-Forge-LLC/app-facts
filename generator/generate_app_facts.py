@@ -534,7 +534,8 @@ def normalize_repo_url(remote, root=None):
 
 
 def detect_license(facts):
-    text = "\n".join(facts["signals"].get(n, "") for n in ("LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING"))
+    signals = facts.get("signals") or {}
+    text = "\n".join(signals.get(n, "") for n in ("LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING"))
     if text:
         if re.search(r"Apache License", text, re.I) and re.search(r"Version 2\.0", text, re.I):
             return "Apache-2.0"
@@ -757,6 +758,9 @@ def enrich_data(data, facts):
                 continue
             coerced[k] = ", ".join(str(x) for x in v) if isinstance(v, list) else str(v)
         out["stack"] = coerced
+    # Schema requires ≥1 stack entry.
+    if not isinstance(out.get("stack"), dict) or len(out["stack"]) < 1:
+        out["stack"] = {"language": "unknown"}
 
     return out
 
@@ -890,6 +894,26 @@ def encode_viewer_hash(payload):
     raw = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
     compressed = zlib.compress(raw, 9)
     return VIEWER_PREFIX + base64.urlsafe_b64encode(compressed).decode("ascii").rstrip("=")
+
+
+def decode_viewer_hash(hash_or_url):
+    """Decode `af1.<payload>` (or a full `/v#…` URL) → compact JSON object."""
+    raw = str(hash_or_url or "")
+    if "#" in raw:
+        raw = raw.split("#", 1)[1]
+    raw = raw.lstrip("#")
+    m = re.match(r"^(af\d+)\.", raw, re.I)
+    if not m:
+        raise ValueError("Missing AppFacts afN payload prefix")
+    if m.group(1).lower() != "af1":
+        raise ValueError(f"Label format {m.group(1)} is not supported — update your viewer")
+    b64 = raw[len(VIEWER_PREFIX):]
+    pad = "=" * ((4 - len(b64) % 4) % 4)
+    compressed = base64.urlsafe_b64decode(b64 + pad)
+    data = json.loads(zlib.decompress(compressed).decode("utf-8"))
+    if not data or data.get("v") != 1 or not data.get("name"):
+        raise ValueError("Unrecognized or incomplete payload")
+    return data
 
 
 def viewer_url_for(fm):
