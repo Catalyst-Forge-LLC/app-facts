@@ -32,6 +32,7 @@ build:
 generated:
   date: 2026-07-21
   generator: appfacts-cli v0.1.0 (claude-sonnet-4-6)
+  inputs_fingerprint: "0123456789abcdef"
 credits:
   generated_with: https://appfacts.dev
   built_by: "Catalyst Forge — https://www.catalystforge.com/"

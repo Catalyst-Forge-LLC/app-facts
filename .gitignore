@@ -4,3 +4,6 @@ __pycache__/
 venv/
 node_modules/
 .DS_Store
+_py_canon.txt
+_js_canon.txt
+_test_APP_FACTS.md

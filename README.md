@@ -33,6 +33,14 @@ Useful for:
 - **AI coding agents** that need a fast, structured read on a project's shape
 - **Clients and stakeholders** who want the stack without reading source
 
+## Examples
+
+| File | What it shows |
+|---|---|
+| [`examples/APP_FACTS.md`](./examples/APP_FACTS.md) | Typical web app |
+| [`examples/APP_FACTS.spec-tooling.md`](./examples/APP_FACTS.spec-tooling.md) | Spec / dual-generator repo (this project’s shape) |
+| [`examples/APP_FACTS.template.md`](./examples/APP_FACTS.template.md) | Hand-authored skeleton |
+
 ## What it looks like
 
 Every `APP_FACTS.md` has two halves. The **YAML frontmatter is the source of truth** — structured and validatable. The **Markdown body is a rendered table** for humans, generated from the frontmatter.
@@ -193,52 +201,54 @@ Both versions accept the same flags:
 | `--consulting-link` | — | URL for a credit footer / `built_by` field. |
 | `--consulting-name` | — | Display name for that credit. |
 | `--dry-run` | off | Print the result instead of writing it. |
+| `--check` | off | Re-scan inputs; exit non-zero if `APP_FACTS.md` fingerprint is missing or stale. No model required. |
 
 ### Add a credit line
 
-Link an `APP_FACTS.md` back to whoever built the project:
-
 ```bash
-# Python
-python3 generate_app_facts.py --provider ollama --model llama3.1 \
-  --consulting-link https://yourconsulting.example \
-  --consulting-name "Your Consulting Co."
+# Dogfood / Catalyst Forge projects
+node generator/generate_app_facts.js --provider ollama --model llama3.1 \
+  --consulting-link https://www.catalystforge.com/ \
+  --consulting-name "Catalyst Forge"
 
-# Node.js
-node generate_app_facts.js --provider ollama --model llama3.1 \
-  --consulting-link https://yourconsulting.example \
-  --consulting-name "Your Consulting Co."
+python3 generator/generate_app_facts.py --provider ollama --model llama3.1 \
+  --consulting-link https://www.catalystforge.com/ \
+  --consulting-name "Catalyst Forge"
 ```
 
-This adds a `credits` block to the frontmatter and a footer to the rendered table.
-
-### Preview before writing
+### Preview / CI check
 
 ```bash
-# either version
 ... --dry-run
+
+# after APP_FACTS.md exists:
+node generator/generate_app_facts.js --check
+python3 generator/generate_app_facts.py --check
 ```
 
 ## How it works
 
 1. **Scan.** Detect manifest files (root + one subdirectory deep), signal files, the package manager (from lockfiles), a README excerpt, CI/Docker presence, and the git remote.
-2. **Prompt.** Send that curated summary — never your source — to the chosen LLM with a strict JSON schema and an instruction to *curate, not dump* (max 8 key dependencies, no invented packages).
-3. **Render.** Validate the returned JSON, write the YAML frontmatter, and generate the human-readable Markdown table beneath it.
+2. **Prompt.** Send that curated summary — never your source — to the chosen LLM using the shared [`generator/prompt.md`](./generator/prompt.md) (*curate, not dump*; max 8 key dependencies).
+3. **Enrich.** Autofill `repository` from `git remote` and `license` from `LICENSE*` when the model leaves them blank; coerce `status` to the allowed enum; stamp `generated.inputs_fingerprint`.
+4. **Validate + render.** Check required fields against the schema rules, write YAML frontmatter, and generate the Markdown table.
 
 ## Validating a file
 
-The frontmatter conforms to [`schema/app-facts.schema.json`](./schema/app-facts.schema.json) (JSON Schema draft-07). Extract the frontmatter and validate it with any standard validator — e.g. [`ajv`](https://ajv.js.org/) (JS) or [`jsonschema`](https://python-jsonschema.readthedocs.io/) (Python).
+The frontmatter conforms to [`schema/app-facts.schema.json`](./schema/app-facts.schema.json) (also at [appfacts.dev/schema/app-facts.schema.json](https://appfacts.dev/schema/app-facts.schema.json)). Extract the frontmatter and validate with any draft-07 validator — e.g. [`ajv`](https://ajv.js.org/) (JS) or [`jsonschema`](https://python-jsonschema.readthedocs.io/) (Python).
+
+Hand-authored skeleton: [`examples/APP_FACTS.template.md`](./examples/APP_FACTS.template.md). Spec-repo shape: [`examples/APP_FACTS.spec-tooling.md`](./examples/APP_FACTS.spec-tooling.md).
 
 ## Roadmap
 
 - [ ] Publishable CLI (`npx appfacts` / `pipx install appfacts`)
-- [ ] `--check` mode to flag a stale `APP_FACTS.md` in CI
+- [x] `--check` mode to flag a stale `APP_FACTS.md` in CI
 - [ ] A badge (`![AppFacts](...)`) linking to a rendered card
 - [ ] Editor/agent integrations that read the frontmatter directly
 
 ## Website
 
-The static site for [appfacts.dev](https://appfacts.dev) lives in [`site/`](./site/). On Cloudflare Pages, set the project root (or build output directory) to `site` — no build step.
+The static site for [appfacts.dev](https://appfacts.dev) lives in [`site/`](./site/). On Cloudflare Pages, set the project root to `site` — no build step. The JSON Schema is published from [`site/schema/`](./site/schema/) (keep in sync with [`schema/`](./schema/)).
 
 ## Contributing
 
