@@ -38,6 +38,21 @@ SKIP_DIRS = {"node_modules", ".git", "dist", "build", "venv", ".venv", "__pycach
 STATUS_ENUM = {"active", "maintenance", "archived", "experimental"}
 MAX_DEPS = 8
 
+# Map file extension -> language/tech, so polyglot repos aren't collapsed to
+# whatever happens to have a manifest. Keep in sync with the JS generator.
+CODE_EXT = {
+    "js": "JavaScript", "mjs": "JavaScript", "cjs": "JavaScript", "jsx": "JavaScript (React)",
+    "ts": "TypeScript", "tsx": "TypeScript (React)",
+    "py": "Python", "rb": "Ruby", "go": "Go", "rs": "Rust", "java": "Java",
+    "kt": "Kotlin", "php": "PHP", "cs": "C#", "c": "C", "h": "C/C++ header",
+    "cpp": "C++", "cc": "C++", "hpp": "C++", "swift": "Swift", "m": "Objective-C",
+    "scala": "Scala", "ex": "Elixir", "exs": "Elixir", "dart": "Dart",
+    "sh": "Shell", "bash": "Shell", "ps1": "PowerShell",
+    "html": "HTML", "htm": "HTML", "css": "CSS", "scss": "CSS (SCSS)", "sass": "CSS (Sass)",
+    "vue": "Vue", "svelte": "Svelte", "sql": "SQL",
+}
+MAX_SCAN_FILES = 20000
+
 SYSTEM_PROMPT = (Path(__file__).with_name("prompt.md")).read_text(encoding="utf-8").strip()
 
 
@@ -67,10 +82,44 @@ def detect_package_manager(dir_path: Path):
     return None
 
 
+def scan_languages(root: Path):
+    """Census of source files by extension (recursive, bounded, deterministic)."""
+    file_types, languages, notable = {}, {}, []
+    seen = [0]
+
+    def walk(dir_path: Path, rel: str):
+        try:
+            entries = sorted(dir_path.iterdir(), key=lambda p: p.name)
+        except OSError:
+            return
+        for ent in entries:
+            if ent.name.startswith(".") or ent.name in SKIP_DIRS:
+                continue
+            rel_path = f"{rel}/{ent.name}" if rel else ent.name
+            if ent.is_dir():
+                walk(ent, rel_path)
+            elif ent.is_file():
+                if seen[0] >= MAX_SCAN_FILES:
+                    return
+                seen[0] += 1
+                ext = ent.suffix.lower().lstrip(".")
+                if ext:
+                    file_types[ext] = file_types.get(ext, 0) + 1
+                lang = CODE_EXT.get(ext)
+                if lang:
+                    languages[lang] = languages.get(lang, 0) + 1
+                    notable.append(rel_path)
+
+    walk(root, "")
+    notable.sort()
+    return {"file_types": file_types, "languages": languages, "notable": notable}
+
+
 def detect_repo_facts(root: Path):
     facts = {
         "manifests": {}, "signals": {}, "package_manager": None,
         "readme_excerpt": "", "tree": [],
+        "languages": {}, "file_types": {}, "notable": [],
     }
     facts["manifests"].update(collect_manifests(root))
     facts["package_manager"] = detect_package_manager(root)
@@ -99,6 +148,10 @@ def detect_repo_facts(root: Path):
         if item.name.startswith(".") or item.name in SKIP_DIRS:
             continue
         facts["tree"].append(item.name + ("/" if item.is_dir() else ""))
+    census = scan_languages(root)
+    facts["languages"] = census["languages"]
+    facts["file_types"] = census["file_types"]
+    facts["notable"] = census["notable"]
     facts["has_ci"] = (root / ".github" / "workflows").exists()
     facts["has_docker"] = (root / "Dockerfile").exists() or (root / "docker-compose.yml").exists()
     try:
@@ -123,6 +176,9 @@ def inputs_fingerprint(facts):
         lines.extend([f"signal:{k}", v])
     lines.extend(["readme", facts.get("readme_excerpt") or ""])
     lines.extend(["tree", "\n".join(sorted(facts["tree"]))])
+    lines.extend(["languages", "\n".join(sorted(f"{k}:{v}" for k, v in facts.get("languages", {}).items()))])
+    lines.extend(["fileTypes", "\n".join(sorted(f"{k}:{v}" for k, v in facts.get("file_types", {}).items()))])
+    lines.extend(["notable", "\n".join(sorted(facts.get("notable", [])))])
     pm = facts.get("package_manager")
     lines.extend(["packageManager", "" if pm is None else str(pm)])
     lines.extend(["hasCi", "1" if facts.get("has_ci") else "0"])
@@ -147,20 +203,35 @@ def normalize_repo_url(remote):
 
 def detect_license(facts):
     text = "\n".join(facts["signals"].get(n, "") for n in ("LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING"))
-    if not text:
-        return None
-    if re.search(r"Apache License", text, re.I) and re.search(r"Version 2\.0", text, re.I):
-        return "Apache-2.0"
-    if re.search(r"GNU GENERAL PUBLIC LICENSE", text, re.I) and re.search(r"Version 3", text, re.I):
-        return "GPL-3.0"
-    if re.search(r"GNU GENERAL PUBLIC LICENSE", text, re.I) and re.search(r"Version 2", text, re.I):
-        return "GPL-2.0"
-    if re.search(r"Mozilla Public License", text, re.I) and re.search(r"2\.0", text, re.I):
-        return "MPL-2.0"
-    if re.search(r"MIT License", text, re.I) or re.search(r"Permission is hereby granted, free of charge", text, re.I):
+    if text:
+        if re.search(r"Apache License", text, re.I) and re.search(r"Version 2\.0", text, re.I):
+            return "Apache-2.0"
+        if re.search(r"GNU GENERAL PUBLIC LICENSE", text, re.I) and re.search(r"Version 3", text, re.I):
+            return "GPL-3.0"
+        if re.search(r"GNU GENERAL PUBLIC LICENSE", text, re.I) and re.search(r"Version 2", text, re.I):
+            return "GPL-2.0"
+        if re.search(r"Mozilla Public License", text, re.I) and re.search(r"2\.0", text, re.I):
+            return "MPL-2.0"
+        if re.search(r"MIT License", text, re.I) or re.search(r"Permission is hereby granted, free of charge", text, re.I):
+            return "MIT"
+        if re.search(r"\bCC0\b", text, re.I) or re.search(r"Creative Commons Zero", text, re.I):
+            return "CC0-1.0"
+
+    # Fallback: an SPDX-ish mention in the README (e.g. "License: MIT", "## License … MIT").
+    readme = facts.get("readme_excerpt") or ""
+    spdx = {
+        "mit": "MIT", "apache-2.0": "Apache-2.0", "gpl-3.0": "GPL-3.0",
+        "gpl-2.0": "GPL-2.0", "mpl-2.0": "MPL-2.0", "bsd-3-clause": "BSD-3-Clause",
+        "bsd-2-clause": "BSD-2-Clause", "isc": "ISC", "cc0-1.0": "CC0-1.0",
+        "unlicense": "Unlicense",
+    }
+    m = re.search(
+        r"licen[sc]e[^\n]*?\b(MIT|Apache-2\.0|GPL-3\.0|GPL-2\.0|MPL-2\.0|BSD-3-Clause|BSD-2-Clause|ISC|CC0-1\.0|Unlicense)\b",
+        readme, re.I)
+    if m:
+        return spdx[m.group(1).lower()]
+    if re.search(r"\bMIT License\b", readme, re.I):
         return "MIT"
-    if re.search(r"\bCC0\b", text, re.I) or re.search(r"Creative Commons Zero", text, re.I):
-        return "CC0-1.0"
     return None
 
 
@@ -169,6 +240,12 @@ def build_user_prompt(facts):
     if facts.get("git_remote"):
         parts.append(f"Git remote: {facts['git_remote']}")
     parts.append(f"Top-level files/dirs: {', '.join(facts['tree'])}")
+    langs = sorted(facts.get("languages", {}).items(), key=lambda kv: (-kv[1], kv[0]))
+    if langs:
+        parts.append("Languages by source-file count: "
+                     + ", ".join(f"{lang} ({count})" for lang, count in langs))
+    if facts.get("notable"):
+        parts.append("Notable source files: " + ", ".join(facts["notable"][:20]))
     parts.append(f"Detected package manager (from lockfile): {facts.get('package_manager')}")
     parts.append(f"Has CI config: {facts.get('has_ci')}")
     parts.append(f"Has Docker config: {facts.get('has_docker')}")

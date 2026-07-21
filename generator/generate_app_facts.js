@@ -37,6 +37,21 @@ const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", "venv", ".ve
 const STATUS_ENUM = new Set(["active", "maintenance", "archived", "experimental"]);
 const MAX_DEPS = 8;
 
+// Map file extension -> language/tech, so polyglot repos aren't collapsed to
+// whatever happens to have a manifest. Keep in sync with the Python generator.
+const CODE_EXT = {
+  js: "JavaScript", mjs: "JavaScript", cjs: "JavaScript", jsx: "JavaScript (React)",
+  ts: "TypeScript", tsx: "TypeScript (React)",
+  py: "Python", rb: "Ruby", go: "Go", rs: "Rust", java: "Java",
+  kt: "Kotlin", php: "PHP", cs: "C#", c: "C", h: "C/C++ header",
+  cpp: "C++", cc: "C++", hpp: "C++", swift: "Swift", m: "Objective-C",
+  scala: "Scala", ex: "Elixir", exs: "Elixir", dart: "Dart",
+  sh: "Shell", bash: "Shell", ps1: "PowerShell",
+  html: "HTML", htm: "HTML", css: "CSS", scss: "CSS (SCSS)", sass: "CSS (Sass)",
+  vue: "Vue", svelte: "Svelte", sql: "SQL",
+};
+const MAX_SCAN_FILES = 20000;
+
 const SYSTEM_PROMPT = fs.readFileSync(path.join(__dirname, "prompt.md"), "utf8").trim();
 
 // ---------- CLI args ----------
@@ -162,10 +177,51 @@ function detectPackageManager(dir) {
   return null;
 }
 
+/** Census of source files by extension (recursive, bounded, deterministic). */
+function scanLanguages(root) {
+  const fileTypes = {};
+  const languages = {};
+  const notable = [];
+  let seen = 0;
+
+  function walk(dir, rel) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    for (const ent of entries) {
+      if (ent.name.startsWith(".") || SKIP_DIRS.has(ent.name)) continue;
+      const relPath = rel ? `${rel}/${ent.name}` : ent.name;
+      if (ent.isDirectory()) {
+        walk(path.join(dir, ent.name), relPath);
+      } else if (ent.isFile()) {
+        if (seen >= MAX_SCAN_FILES) return;
+        seen++;
+        const dot = ent.name.lastIndexOf(".");
+        const ext = dot > 0 ? ent.name.slice(dot + 1).toLowerCase() : "";
+        if (ext) fileTypes[ext] = (fileTypes[ext] || 0) + 1;
+        const lang = CODE_EXT[ext];
+        if (lang) {
+          languages[lang] = (languages[lang] || 0) + 1;
+          notable.push(relPath);
+        }
+      }
+    }
+  }
+
+  walk(root, "");
+  notable.sort();
+  return { fileTypes, languages, notable };
+}
+
 function detectRepoFacts(root) {
   const facts = {
     manifests: {}, signals: {}, packageManager: null,
-    readmeExcerpt: "", tree: [], hasCi: false, hasDocker: false, gitRemote: null,
+    readmeExcerpt: "", tree: [], languages: {}, fileTypes: {}, notable: [],
+    hasCi: false, hasDocker: false, gitRemote: null,
   };
 
   Object.assign(facts.manifests, collectManifests(root));
@@ -199,6 +255,11 @@ function detectRepoFacts(root) {
     const isDir = fs.statSync(path.join(root, item)).isDirectory();
     facts.tree.push(item + (isDir ? "/" : ""));
   }
+
+  const census = scanLanguages(root);
+  facts.languages = census.languages;
+  facts.fileTypes = census.fileTypes;
+  facts.notable = census.notable;
 
   facts.hasCi = fs.existsSync(path.join(root, ".github", "workflows"));
   facts.hasDocker = fs.existsSync(path.join(root, "Dockerfile")) || fs.existsSync(path.join(root, "docker-compose.yml"));
@@ -234,6 +295,9 @@ function inputsFingerprint(facts) {
   }
   lines.push("readme", facts.readmeExcerpt || "");
   lines.push("tree", [...facts.tree].sort().join("\n"));
+  lines.push("languages", Object.entries(facts.languages || {}).map(([k, v]) => `${k}:${v}`).sort().join("\n"));
+  lines.push("fileTypes", Object.entries(facts.fileTypes || {}).map(([k, v]) => `${k}:${v}`).sort().join("\n"));
+  lines.push("notable", [...(facts.notable || [])].sort().join("\n"));
   lines.push("packageManager", facts.packageManager == null ? "" : String(facts.packageManager));
   lines.push("hasCi", facts.hasCi ? "1" : "0");
   lines.push("hasDocker", facts.hasDocker ? "1" : "0");
@@ -254,16 +318,28 @@ function normalizeRepoUrl(remote) {
 function detectLicense(facts) {
   const text = ["LICENSE", "LICENSE.md", "LICENSE.txt", "COPYING"]
     .map(n => facts.signals[n] || "").join("\n");
-  if (!text) return null;
-  if (/Apache License/i.test(text) && /Version 2\.0/i.test(text)) return "Apache-2.0";
-  if (/GNU GENERAL PUBLIC LICENSE/i.test(text) && /Version 3/i.test(text)) return "GPL-3.0";
-  if (/GNU GENERAL PUBLIC LICENSE/i.test(text) && /Version 2/i.test(text)) return "GPL-2.0";
-  if (/Mozilla Public License/i.test(text) && /2\.0/i.test(text)) return "MPL-2.0";
-  if (/BSD 3-Clause/i.test(text) || /Redistribution and use in source and binary forms/i.test(text) && /3-clause/i.test(text)) {
-    return "BSD-3-Clause";
+  if (text) {
+    if (/Apache License/i.test(text) && /Version 2\.0/i.test(text)) return "Apache-2.0";
+    if (/GNU GENERAL PUBLIC LICENSE/i.test(text) && /Version 3/i.test(text)) return "GPL-3.0";
+    if (/GNU GENERAL PUBLIC LICENSE/i.test(text) && /Version 2/i.test(text)) return "GPL-2.0";
+    if (/Mozilla Public License/i.test(text) && /2\.0/i.test(text)) return "MPL-2.0";
+    if (/BSD 3-Clause/i.test(text) || (/Redistribution and use in source and binary forms/i.test(text) && /3-clause/i.test(text))) {
+      return "BSD-3-Clause";
+    }
+    if (/MIT License/i.test(text) || /\bPermission is hereby granted, free of charge\b/i.test(text)) return "MIT";
+    if (/\bCC0\b/i.test(text) || /Creative Commons Zero/i.test(text)) return "CC0-1.0";
   }
-  if (/MIT License/i.test(text) || /\bPermission is hereby granted, free of charge\b/i.test(text)) return "MIT";
-  if (/\bCC0\b/i.test(text) || /Creative Commons Zero/i.test(text)) return "CC0-1.0";
+
+  // Fallback: an SPDX-ish mention in the README (e.g. "License: MIT", "## License … MIT").
+  const readme = facts.readmeExcerpt || "";
+  const spdx = {
+    mit: "MIT", "apache-2.0": "Apache-2.0", "gpl-3.0": "GPL-3.0", "gpl-2.0": "GPL-2.0",
+    "mpl-2.0": "MPL-2.0", "bsd-3-clause": "BSD-3-Clause", "bsd-2-clause": "BSD-2-Clause",
+    isc: "ISC", "cc0-1.0": "CC0-1.0", unlicense: "Unlicense",
+  };
+  const m = readme.match(/licen[sc]e[^\n]*?\b(MIT|Apache-2\.0|GPL-3\.0|GPL-2\.0|MPL-2\.0|BSD-3-Clause|BSD-2-Clause|ISC|CC0-1\.0|Unlicense)\b/i);
+  if (m) return spdx[m[1].toLowerCase()];
+  if (/\bMIT License\b/i.test(readme)) return "MIT";
   return null;
 }
 
@@ -273,6 +349,13 @@ function buildUserPrompt(facts) {
   const parts = ["Repository facts:\n"];
   if (facts.gitRemote) parts.push(`Git remote: ${facts.gitRemote}`);
   parts.push(`Top-level files/dirs: ${facts.tree.join(", ")}`);
+  const langs = Object.entries(facts.languages || {}).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  if (langs.length) {
+    parts.push(`Languages by source-file count: ${langs.map(([l, c]) => `${l} (${c})`).join(", ")}`);
+  }
+  if (facts.notable && facts.notable.length) {
+    parts.push(`Notable source files: ${facts.notable.slice(0, 20).join(", ")}`);
+  }
   parts.push(`Detected package manager (from lockfile): ${facts.packageManager}`);
   parts.push(`Has CI config: ${facts.hasCi}`);
   parts.push(`Has Docker config: ${facts.hasDocker}`);
