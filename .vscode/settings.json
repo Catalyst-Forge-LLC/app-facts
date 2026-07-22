@@ -1,9 +1,11 @@
 {
-  // Microsoft "Live Preview" (ms-vscode.live-server) — URLs look like
-  // http://127.0.0.1:3000/?serverWindowId=…
+  // Microsoft Live Preview (ms-vscode.live-server) — ?serverWindowId=…
+  // Path is relative to the workspace folder (no leading slash).
   "livePreview.serverRoot": "site",
+  "livePreview.defaultPreviewPath": "/index.html",
+  "livePreview.autoRefreshPreview": "On Changes",
 
-  // Ritwick Dey "Live Server" (ritwickdey.LiveServer) if installed
+  // Ritwick Dey Live Server (ritwickdey.LiveServer), if installed
   "liveServer.settings.root": "/site",
-  "liveServer.settings.port": 3000
+  "liveServer.settings.port": 5500
 }
