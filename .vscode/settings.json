@@ -1,4 +1,9 @@
 {
+  // Microsoft "Live Preview" (ms-vscode.live-server) — URLs look like
+  // http://127.0.0.1:3000/?serverWindowId=…
+  "livePreview.serverRoot": "site",
+
+  // Ritwick Dey "Live Server" (ritwickdey.LiveServer) if installed
   "liveServer.settings.root": "/site",
   "liveServer.settings.port": 3000
 }
