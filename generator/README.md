@@ -47,6 +47,15 @@ python3 generator/generate_app_facts.py . --provider ollama --model llama3.1 \
 
 Writes `<TARGET>/APP_FACTS.md` and `<TARGET>/APP_FACTS.png`. Skip the PNG with `--no-qr`.
 
+Emit a self-contained HTML badge (and `BADGE.md` with all three variants):
+
+```bash
+node generate_app_facts.js /path/to/my-app --provider ollama --model llama3.1 --badge
+node generate_app_facts.js /path/to/my-app --provider ollama --model llama3.1 --badge=card
+```
+
+Variants: `pill` (default), `label`, `card`. Printed HTML matches [appfacts.dev/badge](https://appfacts.dev/badge/). Spec: [`../BADGE_SPEC.md`](../BADGE_SPEC.md).
+
 Preview without writing:
 
 ```bash
@@ -78,7 +87,7 @@ node generate_app_facts.js /path/to/my-app --check
 
 ```bash
 # Node (built-in node:test)
-node --test generator/test/af1_roundtrip.test.js generator/test/fingerprint.test.js
+node --test generator/test/af1_roundtrip.test.js generator/test/fingerprint.test.js generator/test/badge.test.js
 
 # Python
 python -m unittest discover -s generator/test -p 'test_*.py' -v

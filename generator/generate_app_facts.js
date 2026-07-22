@@ -24,6 +24,9 @@ const {
   encodeViewerHash,
   decodeViewerHash,
 } = require("./viewer_codec.js");
+const { renderBadgeHtml, renderBadgeMarkdown } = require("./badge.js");
+
+const BADGE_VARIANTS = new Set(["pill", "label", "card"]);
 
 const MANIFESTS = [
   "package.json", "pyproject.toml", "Cargo.toml", "go.mod",
@@ -134,6 +137,7 @@ function parseArgs(argv) {
     target: null, path: null, output: null, provider: "ollama", model: null,
     ollamaHost: "http://localhost:11434",
     consultingLink: null, consultingName: null, dryRun: false, check: false, noQr: false,
+    badge: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -155,6 +159,16 @@ function parseArgs(argv) {
     else if (a === "--dry-run") args.dryRun = true;
     else if (a === "--check") args.check = true;
     else if (a === "--no-qr") args.noQr = true;
+    else if (a === "--badge" || a.startsWith("--badge=")) {
+      let v = "pill";
+      if (a.startsWith("--badge=")) v = a.slice("--badge=".length);
+      else if (argv[i + 1] && BADGE_VARIANTS.has(argv[i + 1])) v = next();
+      if (!BADGE_VARIANTS.has(v)) {
+        console.error(`Invalid --badge value: ${v} (use pill|label|card)`);
+        process.exit(1);
+      }
+      args.badge = v;
+    }
     else if (a === "--help" || a === "-h") args.help = true;
     else if (a.startsWith("-")) {
       console.error(`Unknown option: ${a}`);
@@ -180,6 +194,8 @@ function parseArgs(argv) {
   --dry-run              Print markdown; do not write files
   --check                Exit non-zero if APP_FACTS.md fingerprint is stale
   --no-qr                Skip APP_FACTS.png
+  --badge[=pill|label|card]
+                         Print HTML badge (default pill); write BADGE.md
   -h, --help             Show this help
 
 Examples:
@@ -1272,16 +1288,35 @@ async function main() {
   const qrUrl = qrTargetUrl(fm);
   const output = renderAppFacts(fm, args.consultingLink, args.consultingName, qrUrl);
   const pngPath = pngPathFor(outPath);
+  const badgePath = path.join(path.dirname(outPath), "BADGE.md");
+  const badgeOpts = { type: fm.type, stack: fm.stack };
+  const badgeHtml = args.badge
+    ? renderBadgeHtml(args.badge, qrUrl, badgeOpts)
+    : null;
+  const badgeMd = args.badge ? renderBadgeMarkdown(qrUrl, badgeOpts) : null;
 
   if (args.dryRun) {
-    console.log(output);
-    if (!args.noQr) console.error(`Would write QR PNG -> ${pngPath}\nQR target: ${qrUrl}`);
+    if (badgeHtml) {
+      console.log(badgeHtml);
+      console.error(output);
+      if (!args.noQr) console.error(`Would write QR PNG -> ${pngPath}\nQR target: ${qrUrl}`);
+      console.error(`Would write ${badgePath}`);
+    } else {
+      console.log(output);
+      if (!args.noQr) console.error(`Would write QR PNG -> ${pngPath}\nQR target: ${qrUrl}`);
+    }
   } else {
     fs.writeFileSync(outPath, output);
     console.log(`Wrote ${outPath} (fingerprint ${fingerprint})`);
     if (!args.noQr) {
       writeQrPng(qrUrl, pngPath);
       console.log(`Wrote ${pngPath} (QR -> ${qrUrl})`);
+    }
+    if (badgeHtml && badgeMd) {
+      fs.writeFileSync(badgePath, badgeMd);
+      console.log(`Wrote ${badgePath}`);
+      // Ready-to-paste HTML on stdout after status lines (pipe with care).
+      console.log(badgeHtml);
     }
   }
 }

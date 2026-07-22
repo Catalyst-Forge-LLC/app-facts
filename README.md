@@ -260,7 +260,8 @@ Hand-authored skeleton: [`examples/APP_FACTS.template.md`](./examples/APP_FACTS.
 
 - [ ] Publishable CLI (`npx appfacts` / `pipx install appfacts`)
 - [x] `--check` mode to flag a stale `APP_FACTS.md` in CI
-- [ ] A badge (`![AppFacts](...)`) linking to a rendered card
+- [x] Self-contained HTML badges (`--badge`, [/badge](https://appfacts.dev/badge/)) — see [`BADGE_SPEC.md`](./BADGE_SPEC.md)
+- [ ] Hosted SVG badge for GitHub READMEs (`/badge.svg?af1=…`)
 - [ ] Editor/agent integrations that read the frontmatter directly
 
 ## Website
@@ -271,6 +272,7 @@ The static site for [appfacts.dev](https://appfacts.dev) lives in [`site/`](./si
 |---|---|
 | [`site/index.html`](./site/index.html) | Marketing / docs landing |
 | [`site/v/index.html`](./site/v/index.html) | Portable label viewer (`/v#af1.…`) |
+| [`site/badge/`](./site/badge/) | Get a badge (HTML snippets) |
 | [`site/schema/app-facts.schema.json`](./site/schema/app-facts.schema.json) | Canonical JSON Schema |
 
 YAML frontmatter in `APP_FACTS.md` is the machine source of truth (and may look plain in some Markdown previews). The human skim is the body + the `/v` visual label from the QR.

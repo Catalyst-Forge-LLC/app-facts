@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Get an AppFacts badge</title>
+  <meta name="description" content="Copy a self-contained AppFacts HTML badge that links to your portable /v label." />
+  <link rel="canonical" href="https://appfacts.dev/badge/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Sora:wght@600;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #101418;
+      --paper: #f8fafc;
+      --mute: #9aa8b8;
+      --ember: #d96b2b;
+      --ember-soft: #f0a36a;
+      --font-display: "Sora", sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--paper);
+      background:
+        radial-gradient(900px 480px at 15% -10%, rgba(217, 107, 43, 0.16), transparent 55%),
+        linear-gradient(180deg, #0c1015 0%, #101418 45%, #0a0e13 100%);
+      padding: 1.5rem 1rem 3rem;
+    }
+    .wrap { width: min(100%, 40rem); margin-inline: auto; }
+    a { color: var(--ember-soft); }
+    a:hover { color: #fff; }
+    .brand {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 0.85rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ember-soft);
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 1rem;
+    }
+    .brand span { color: #fff; }
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.6rem, 4vw, 2.1rem);
+      font-weight: 800;
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .lead { color: var(--mute); margin: 0 0 1.5rem; max-width: 36em; }
+    label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--mute);
+      margin-bottom: 0.4rem;
+    }
+    textarea, select {
+      width: 100%;
+      font: inherit;
+      color: var(--paper);
+      background: #161b22;
+      border: 1px solid #2a323e;
+      border-radius: 6px;
+      padding: 0.7rem 0.8rem;
+      margin-bottom: 1rem;
+    }
+    textarea { min-height: 5.5rem; resize: vertical; }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: end;
+      margin-bottom: 1.25rem;
+    }
+    .row > * { flex: 1 1 10rem; }
+    .btn {
+      display: inline-block;
+      font: 600 0.85rem var(--font-mono);
+      padding: 0.65rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--ember);
+      background: var(--ember);
+      color: #fff;
+      cursor: pointer;
+    }
+    .btn:hover { filter: brightness(1.08); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--ember-soft);
+    }
+    .panel {
+      margin-top: 1.5rem;
+      padding: 1.1rem 1.15rem;
+      border: 1px solid #2a323e;
+      border-radius: 10px;
+      background: rgba(18, 21, 27, 0.85);
+    }
+    .panel h2 {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      margin: 0 0 0.75rem;
+    }
+    .preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      padding: 1.25rem;
+      border-radius: 8px;
+      margin-bottom: 0.85rem;
+    }
+    .preview.light { background: #eef2f6; }
+    .preview.dark { background: #0a0c10; border: 1px solid #2a323e; }
+    .preview-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--mute);
+      margin: 0 0 0.35rem;
+    }
+    pre {
+      margin: 0;
+      padding: 0.85rem;
+      overflow: auto;
+      font-size: 0.72rem;
+      line-height: 1.4;
+      background: #0a0c10;
+      border-radius: 6px;
+      border: 1px solid #2a323e;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .err { color: #ff8b8b; margin: 0.5rem 0 0; }
+    .note { color: var(--mute); font-size: 0.85rem; margin-top: 1.25rem; }
+    .note code { color: #c8d0da; }
+  </style>
+  <script src="./render.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <a class="brand" href="/">App<span>Facts</span></a>
+    <h1>Get a badge</h1>
+    <p class="lead">
+      Self-contained HTML for a footer or nav — links to your portable label at
+      <code>/v#af1.…</code>. Same markup the generators emit with <code>--badge</code>.
+      GitHub READMEs strip inline styles; a hosted SVG endpoint is a separate track.
+    </p>
+
+    <label for="url">Viewer URL or <code>af1.…</code> fragment</label>
+    <textarea id="url" spellcheck="false" placeholder="https://appfacts.dev/v#af1.…"></textarea>
+
+    <div class="row">
+      <div>
+        <label for="variant">Variant</label>
+        <select id="variant">
+          <option value="pill">Pill</option>
+          <option value="label">Label + value</option>
+          <option value="card">Mini card</option>
+        </select>
+      </div>
+      <div>
+        <label for="valueText">Label value (optional)</label>
+        <input id="valueText" type="text" placeholder="view label or project type"
+          style="width:100%;font:inherit;color:var(--paper);background:#161b22;border:1px solid #2a323e;border-radius:6px;padding:0.7rem 0.8rem;" />
+      </div>
+      <div>
+        <label for="stackLine">Card stack line (optional)</label>
+        <input id="stackLine" type="text" placeholder="TypeScript · React · Postgres"
+          style="width:100%;font:inherit;color:var(--paper);background:#161b22;border:1px solid #2a323e;border-radius:6px;padding:0.7rem 0.8rem;" />
+      </div>
+    </div>
+
+    <button type="button" class="btn" id="build">Build badge</button>
+    <button type="button" class="btn btn-ghost" id="copy">Copy HTML</button>
+    <p class="err" id="err" hidden></p>
+
+    <div class="panel" id="out" hidden>
+      <h2>Preview</h2>
+      <p class="preview-label">On light</p>
+      <div class="preview light" id="previewLight"></div>
+      <p class="preview-label">On dark</p>
+      <div class="preview dark" id="previewDark"></div>
+      <h2>HTML</h2>
+      <pre id="htmlOut"></pre>
+    </div>
+
+    <p class="note">
+      Spec: <a href="https://github.com/Catalyst-Forge-LLC/app-facts/blob/main/BADGE_SPEC.md">BADGE_SPEC.md</a>.
+      Generators: <code>--badge</code> / <code>--badge=label</code> / <code>--badge=card</code>
+      writes <code>BADGE.md</code> and prints the chosen snippet.
+    </p>
+  </div>
+
+  <script>
+    (function () {
+      const { renderBadgeHtml } = globalThis.AppFactsBadge || {};
+      const $ = (id) => document.getElementById(id);
+
+      function normalizeViewerUrl(raw) {
+        const s = String(raw || "").trim();
+        if (!s) throw new Error("Paste a /v#af1.… URL or af1.… fragment.");
+        if (s.startsWith("https://appfacts.dev/v#") || s.startsWith("http://appfacts.dev/v#")) return s;
+        if (s.startsWith("af1.")) return "https://appfacts.dev/v#" + s;
+        if (s.startsWith("#af1.")) return "https://appfacts.dev/v" + s;
+        if (s.includes("/v#af1.")) {
+          const i = s.indexOf("/v#");
+          return "https://appfacts.dev" + s.slice(i);
+        }
+        throw new Error("Expected an af1 viewer URL or fragment.");
+      }
+
+      function build() {
+        $("err").hidden = true;
+        try {
+          if (!renderBadgeHtml) throw new Error("Badge renderer failed to load.");
+          const viewerUrl = normalizeViewerUrl($("url").value);
+          const variant = $("variant").value;
+          const opts = {};
+          const vt = $("valueText").value.trim();
+          const sl = $("stackLine").value.trim();
+          if (vt) opts.valueText = vt;
+          if (sl) opts.stackLine = sl;
+          if (!vt) opts.type = "view label";
+          const html = renderBadgeHtml(variant, viewerUrl, opts);
+          $("htmlOut").textContent = html;
+          $("previewLight").innerHTML = html;
+          $("previewDark").innerHTML = html;
+          $("out").hidden = false;
+        } catch (e) {
+          $("err").textContent = e.message || String(e);
+          $("err").hidden = false;
+          $("out").hidden = true;
+        }
+      }
+
+      $("build").addEventListener("click", build);
+      $("copy").addEventListener("click", async () => {
+        const t = $("htmlOut").textContent;
+        if (!t) { build(); }
+        const text = $("htmlOut").textContent;
+        if (!text) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          $("copy").textContent = "Copied";
+          setTimeout(() => { $("copy").textContent = "Copy HTML"; }, 1200);
+        } catch {
+          $("err").textContent = "Could not copy — select the HTML block manually.";
+          $("err").hidden = false;
+        }
+      });
+
+      // Prefill from hash: /badge#af1.… or /badge#https://…
+      if (location.hash && location.hash.length > 1) {
+        $("url").value = decodeURIComponent(location.hash.slice(1));
+        build();
+      }
+    })();
+  </script>
+</body>
+</html>

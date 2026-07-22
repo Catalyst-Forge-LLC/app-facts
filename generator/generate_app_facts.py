@@ -15,10 +15,18 @@ import argparse, base64, hashlib, json, os, re, sys, datetime, subprocess, zlib
 import urllib.request
 from pathlib import Path
 
+_GEN_DIR = Path(__file__).resolve().parent
+if str(_GEN_DIR) not in sys.path:
+    sys.path.insert(0, str(_GEN_DIR))
+
 try:
     import yaml
 except ImportError:
     sys.exit("Missing dependency: pip install -r requirements.txt")
+
+from badge import render_badge_html, render_badge_markdown
+
+BADGE_VARIANTS = ("pill", "label", "card")
 
 MANIFESTS = [
     "package.json", "pyproject.toml", "Cargo.toml", "go.mod",
@@ -1176,6 +1184,14 @@ def main():
     ap.add_argument("--check", action="store_true",
                     help="Re-scan and exit non-zero if APP_FACTS.md fingerprint is stale")
     ap.add_argument("--no-qr", action="store_true", help="Skip writing APP_FACTS.png")
+    ap.add_argument(
+        "--badge",
+        nargs="?",
+        const="pill",
+        default=None,
+        choices=BADGE_VARIANTS,
+        help="Print HTML badge (default: pill) and write BADGE.md beside APP_FACTS.md",
+    )
     args = ap.parse_args()
 
     if not args.check and not args.model:
@@ -1223,11 +1239,28 @@ def main():
     qr_url = qr_target_url(fm)
     output = render_app_facts(fm, args.consulting_link, args.consulting_name, qr_url)
     png_path = png_path_for(out_path)
+    badge_path = out_path.parent / "BADGE.md"
+    badge_html = None
+    badge_md = None
+    if args.badge:
+        badge_html = render_badge_html(
+            args.badge, qr_url, type=fm.get("type"), stack=fm.get("stack"),
+        )
+        badge_md = render_badge_markdown(
+            qr_url, type=fm.get("type"), stack=fm.get("stack"),
+        )
 
     if args.dry_run:
-        print(output)
-        if not args.no_qr:
-            print(f"Would write QR PNG -> {png_path}\nQR target: {qr_url}", file=sys.stderr)
+        if badge_html:
+            print(badge_html)
+            print(output, file=sys.stderr)
+            if not args.no_qr:
+                print(f"Would write QR PNG -> {png_path}\nQR target: {qr_url}", file=sys.stderr)
+            print(f"Would write {badge_path}", file=sys.stderr)
+        else:
+            print(output)
+            if not args.no_qr:
+                print(f"Would write QR PNG -> {png_path}\nQR target: {qr_url}", file=sys.stderr)
     else:
         with out_path.open("w", encoding="utf-8", newline="\n") as fh:
             fh.write(output)
@@ -1235,6 +1268,11 @@ def main():
         if not args.no_qr:
             write_qr_png(qr_url, png_path)
             print(f"Wrote {png_path} (QR -> {qr_url})")
+        if badge_html and badge_md:
+            with badge_path.open("w", encoding="utf-8", newline="\n") as fh:
+                fh.write(badge_md)
+            print(f"Wrote {badge_path}")
+            print(badge_html)
 
 
 if __name__ == "__main__":
