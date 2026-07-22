@@ -268,6 +268,8 @@ Hand-authored skeleton: [`examples/APP_FACTS.template.md`](./examples/APP_FACTS.
 
 The static site for [appfacts.dev](https://appfacts.dev) lives in [`site/`](./site/). On Cloudflare Pages, set the project root to `site` — no build step.
 
+Local preview: open this repo and use Live Server (workspace setting `liveServer.settings.root` is `/site`), or `npx serve site -p 3000`. Paths like `/v/` and `/badge/` only work when the server root is `site/`, not the repo root.
+
 | Path | Purpose |
 |---|---|
 | [`site/index.html`](./site/index.html) | Marketing / docs landing |
