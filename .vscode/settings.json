@@ -1,11 +1,5 @@
 {
-  // Microsoft Live Preview (ms-vscode.live-server) — ?serverWindowId=…
-  // Path is relative to the workspace folder (no leading slash).
-  "livePreview.serverRoot": "site",
-  "livePreview.defaultPreviewPath": "/index.html",
-  "livePreview.autoRefreshPreview": "On Changes",
-
-  // Ritwick Dey Live Server (ritwickdey.LiveServer), if installed
-  "liveServer.settings.root": "/site",
-  "liveServer.settings.port": 5500
+  // Microsoft Live Preview (extension id: ms-vscode.live-server)
+  // Relative to workspace folder; no leading slash.
+  "livePreview.serverRoot": "site"
 }

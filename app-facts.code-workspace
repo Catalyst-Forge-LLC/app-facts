@@ -1,0 +1,16 @@
+{
+  "folders": [
+    {
+      "name": "site",
+      "path": "site"
+    },
+    {
+      "name": "repo",
+      "path": "."
+    }
+  ],
+  "settings": {
+    // Preview files under the "site" folder — that folder IS the server root.
+    // Do not set livePreview.serverRoot here; it breaks multi-root previews.
+  }
+}

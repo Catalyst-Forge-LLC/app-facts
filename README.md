@@ -268,7 +268,15 @@ Hand-authored skeleton: [`examples/APP_FACTS.template.md`](./examples/APP_FACTS.
 
 The static site for [appfacts.dev](https://appfacts.dev) lives in [`site/`](./site/). On Cloudflare Pages, set the project root to `site` — no build step.
 
-Local preview: serve from `site/` so `/v/` and `/badge/` resolve. This repo sets both `livePreview.serverRoot` (Microsoft Live Preview — the one with `?serverWindowId=…`) and `liveServer.settings.root` (Ritwick Live Server). After changing those, stop the preview and start again. Or: `npx serve site -p 3000`.
+Local preview (Microsoft **Live Preview**, extension `ms-vscode.live-server`):
+
+1. Open [`app-facts.code-workspace`](./app-facts.code-workspace) (or keep the repo open — `.vscode` sets `livePreview.serverRoot` to `site`).
+2. **Save** `site/index.html` (the `endpoint_unsaved` error means it was previewed unsaved).
+3. Click in the **editor body** (not the tab) → Command Palette → **Live Preview: Show Preview**.  
+   Right‑clicking the tab will not show preview commands.
+4. You should land on `/` as the marketing page; `/badge/` and `/v/` work from there.
+
+Fallback: `npx serve site -p 3001`.
 
 | Path | Purpose |
 |---|---|
