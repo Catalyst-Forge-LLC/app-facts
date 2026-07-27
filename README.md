@@ -289,7 +289,7 @@ YAML frontmatter in `APP_FACTS.md` is the machine source of truth (and may look 
 
 ## Contributing
 
-This is **v0.1** — the spec's required fields may still shift before v1.0. Issues and proposals on field taxonomy, provider support, and output format are all welcome.
+This is **v0.1.2** — the spec's required fields may still shift before v1.0. Issues and proposals on field taxonomy, provider support, and output format are all welcome.
 
 ## License
 
