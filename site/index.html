@@ -333,20 +333,50 @@
       margin: 0 0 0.4rem;
     }
 
-    footer {
+    .xfacts-family-footer {
       padding: 2rem 0 2.75rem;
-      border-top: 1px solid rgba(255,255,255,0.08);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
       color: var(--mute);
       font-size: 0.8rem;
     }
-
-    footer .row {
+    .xfacts-family-footer .xfacts-footer-inner {
+      width: min(100% - 2rem, var(--max));
+      margin-inline: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .xfacts-family-footer .xfacts-footer-nav {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.75rem 1.5rem;
+      gap: 0.55rem 1rem;
+      align-items: center;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .xfacts-family-footer .xfacts-footer-nav a,
+    .xfacts-family-footer .xfacts-footer-nav span {
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 0.78rem;
+    }
+    .xfacts-family-footer .xfacts-footer-nav .current { color: #fff; }
+    .xfacts-family-footer .xfacts-footer-nav a[data-label="hub"] { color: #c9d3de; }
+    .xfacts-family-footer .xfacts-footer-nav a[data-label="model"] { color: #ab93f5; }
+    .xfacts-family-footer .xfacts-footer-nav a[data-label="tool"] { color: #5eead4; }
+    .xfacts-family-footer .xfacts-footer-nav a[data-label="agent"] { color: #fbd38d; }
+    .xfacts-family-footer .xfacts-footer-nav a[data-label="skill"] { color: #f9a8d4; }
+    .xfacts-family-footer .xfacts-footer-nav a:hover { color: #fff; }
+    .xfacts-family-footer .xfacts-footer-credit {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.25rem;
       justify-content: space-between;
       align-items: center;
     }
+    .xfacts-family-footer .xfacts-footer-credit a { color: #c9d3de; }
+    .xfacts-family-footer .xfacts-footer-credit a:hover { color: #fff; }
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
@@ -523,26 +553,19 @@ python3 /path/to/app-facts/generator/generate_app_facts.py \
     </section>
   </main>
 
-  <footer>
-    <div class="wrap row">
-      <div>© 2026 AppFacts · Maintained by <a href="https://www.catalystforge.com/">Catalyst Forge</a></div>
-      <div style="display:inline-flex;flex-wrap:wrap;gap:0.85rem;align-items:center;">
-        <a href="https://appfacts.dev/v#af1.eNo1kMtqAzEMRX_F3LWToVvvQiB9kJS0zaaULlSPxnE7sY2lCQwh_15m0i51dY4E94Iz3J1FohPDYVXKhrwKLHQsUyKFvWmM5tzHFGAhSjoIHMhrPDMs-ug5yQTvHg83wv_AXdBTCgOFafNEZ3rzNRa1Zj_qMSdrHg67LSzqkDTO359zy8tv-SdwtWi5CNzHBQkO-_F9NStlGqgKmykwXc1JT6TK1XS5Gp9TF8NQSeN85WYLh5T_5HtOXEnZvLwan1uW2fuiNrDg-mlRuWSJmusIh6NqEdc0Iepx-Fr6fGrWpNSPootNroEX2-26oVIW3Vze9Rc9aXGA"
-           style="all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
-           font:600 12px/1 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-           padding:6px 11px;border-radius:999px;background:#0f1115;color:#e7ecf2;
-           border:1px solid #2a323e;text-decoration:none;vertical-align:middle;"
-           aria-label="View this project's AppFacts label">
-          <span style="display:inline-flex;align-items:center;justify-content:center;
-            width:14px;height:14px;border-radius:3px;flex:none;background:#3ecf9a;color:#052018;
-            font:800 8px ui-monospace,monospace;">AF</span>
-          <span>App&nbsp;Facts</span>
-        </a>
-        <span>
-          <a href="/badge/">Get a badge</a>
-          ·
-          <a href="https://github.com/Catalyst-Forge-LLC/app-facts">GitHub</a>
-        </span>
+  <footer class="xfacts-family-footer" data-current="app">
+    <div class="xfacts-footer-inner">
+      <ul class="xfacts-footer-nav" aria-label="xFacts family">
+        <li><a data-label="hub" href="https://xfacts.dev">xFacts</a></li>
+        <li><span class="current" data-label="app">AppFacts</span></li>
+        <li><a data-label="model" href="https://modelfacts.dev">ModelFacts</a></li>
+        <li><a data-label="tool" href="https://toolfacts.dev">ToolFacts</a></li>
+        <li><a data-label="agent" href="https://agentfacts.dev">AgentFacts</a></li>
+        <li><a data-label="skill" href="https://skillfacts.dev">SkillFacts</a></li>
+      </ul>
+      <div class="xfacts-footer-credit">
+        <div>© 2026 AppFacts · <a href="/badge/">Get a badge</a> · <a href="https://github.com/Catalyst-Forge-LLC/app-facts">GitHub</a></div>
+        <div>by <a href="https://www.catalystforge.com/">Catalyst Forge</a></div>
       </div>
     </div>
   </footer>
