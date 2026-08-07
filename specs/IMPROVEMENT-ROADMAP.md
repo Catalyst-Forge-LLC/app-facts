@@ -52,7 +52,7 @@ It already validates the skeleton the siblings copy.
 |---|---|---|
 | A | Agent discoverability | `llms.txt` live; README agent section |
 | B | Emitter culture | ≥1 non-CF template emits AppFacts; CI snippet published |
-| C | Virality | Badge + `/v` default in generate UX; case study panel |
+| C | Easy sharing | Badge + `/v` as the default end of generate; case study panel |
 | D | Family glue | Full-panel dogfood linked from site + hub essay |
 
 ## Non-goals
