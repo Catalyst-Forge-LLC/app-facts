@@ -118,6 +118,27 @@ When the full payload exceeds that ceiling, generators **SHOULD** retry with pro
 
 If still over the limit after the last attempt, generators may still emit the last attempt (best-effort); scanners may fail on very long URLs.
 
+## Optional fields (viewer UX)
+
+| Key | Type | Notes |
+|---|---|---|
+| `raw` | string | Optional full Markdown (frontmatter + body). When present, the viewer flip face shows it verbatim. When absent, the viewer **reconstructs** a Markdown document from compact fields. |
+| `truncated` | boolean | Optional. `true` when the encoder dropped fields to fit URL size. |
+
+These keys are ignored by older viewers that only render the nutrition face.
+
+## Face query
+
+The viewer MAY accept `?face=raw` to open on the raw face:
+
+```
+https://appfacts.dev/v?face=raw#af1.<payload>
+```
+
+The fragment remains the sole payload carrier. The query only selects UI face
+(label vs raw). Flip and copy-to-clipboard controls are part of the `/v` page UX
+(suite plan: x-facts `specs/PORTABLE-VIEWER-AND-FLIP.md`).
+
 ## No-backend guarantee
 
 The page at `/v` inflates and renders **entirely in the browser** from the URL fragment. Nothing from the fragment is stored or logged by appfacts.dev as part of normal operation. Treat the payload as **untrusted user-controlled data** (see the on-page trust banner).
