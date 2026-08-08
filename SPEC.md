@@ -1,4 +1,4 @@
-# AppFacts Specification — v0.1.2
+# AppFacts Specification — v0.1.3
 
 ## File
 
@@ -162,9 +162,21 @@ Generators may also emit `APP_FACTS.png`, a QR code whose URL is:
 
 The compact JSON schema, encode/decode steps, size limits, and versioning rules are defined in **[`SPEC-af1.md`](./SPEC-af1.md)**. Summary: zlib-compressed, base64url (no padding) JSON subset of the frontmatter; the static page at `/v` inflates the fragment client-side. **No backend storage.**
 
+## Publication & discovery
+
+Suite contract: [x-facts `DISCOVERY-AND-PUBLICATION.md`](../x-facts/specs/DISCOVERY-AND-PUBLICATION.md).
+
+| | |
+|---|---|
+| **Canonical file** | Repo root `APP_FACTS.md` |
+| **Primary pointer** | The public repository; README badge or link to the raw file and/or `/v` |
+| **Fallback** | `/.well-known/x-facts/app.md` on the product homepage when there is no public git root |
+
+Generators **SHOULD** print a canonical URL (when known) and the viewer URL when a portable payload is emitted. The `/v` card is for human share/skim, not the machine SoT.
+
 ## Versioning
 
-- **This document:** v0.1.2 (deterministic-fingerprint fixes; see revision history). Does not invalidate existing files.
+- **This document:** v0.1.3 (publication & discovery; see revision history). Does not invalidate existing files.
 - **Files** declare `app_facts_version` (currently `"0.1.0"`) so tooling can evolve independently of the prose document. Generators MUST emit the **file-format** version (`"0.1.0"`), not this document's version.
 - Required-field list may still change before v1.0.
 
@@ -172,6 +184,7 @@ The compact JSON schema, encode/decode steps, size limits, and versioning rules 
 
 | Spec doc | Notes |
 |---|---|
+| **0.1.3** | Publication & discovery: repo-root pointer, well-known fallback, link to suite discovery contract. |
 | **0.1.2** | Make the fingerprint deterministic and prompt-independent: pin the `package.json` manifest canonical form (sorted `name@versionRange`), fix an 8192-byte excerpt limit for all excerpted inputs, and add normative serialization-framing rules (one entry per append, embedded newlines preserved, empty values still contribute a line). Clarify generators emit file-format version `0.1.0`, not the doc version. |
 | **0.1.1** | Document `af1` payload (`SPEC-af1.md`); pin fingerprint canonicalization; clarify body drift vs `--check`; canonical schema URL first; state `stack` ≥1 entry; confirm `key_dependencies` 0–8 and `services` 0–6 bounds. |
 | **0.1** | Initial required fields, conventions, `--check`, `/v` overview. |

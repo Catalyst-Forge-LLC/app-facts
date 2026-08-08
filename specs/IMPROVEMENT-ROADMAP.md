@@ -33,6 +33,8 @@ It already validates the skeleton the siblings copy.
 2. Document “agent consumption” in one short README section (frontmatter SoT).
 3. Exemplar / docs CTA: open portable `/v` where a payload exists (parity with siblings).
 4. Publish a **copy-paste AGENTS.md blurb**: “If `APP_FACTS.md` exists, read frontmatter first.”
+   Align generator output with suite [discovery contract](../../x-facts/specs/DISCOVERY-AND-PUBLICATION.md)
+   (print canonical + viewer URLs).
 
 ### Mid-term
 
