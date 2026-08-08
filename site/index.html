@@ -85,6 +85,24 @@
       animation: fadeup 800ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }
 
+
+    .suite {
+      position: relative;
+      margin: 0 0 0.75rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+
+    .suite a {
+      color: #c9d3de;
+      text-decoration: none;
+    }
+
+    .suite a:hover { color: #fff; }
+
     .brand {
       font-family: var(--font-display);
       font-weight: 800;
@@ -389,6 +407,7 @@
 <body>
   <header class="hero">
     <div class="wrap hero-copy">
+      <p class="suite">Part of the <a href="https://xfacts.dev">xFacts</a> suite</p>
       <h1 class="brand">App<span>Facts</span></h1>
       <p class="lede">A Nutrition Facts label for software.</p>
       <p class="sub">
@@ -545,6 +564,7 @@ python3 /path/to/app-facts/generator/generate_app_facts.py \
             AI consulting for growing businesses. Find what matters. Forge it.
           </p>
           <p>
+            Part of the <a href="https://xfacts.dev">xFacts</a> suite &mdash; nutrition labels for every layer of the AI stack.
             Spec &amp; schema are <strong>CC0</strong> (public domain). Generator scripts are <strong>MIT</strong>.
             Adopt freely; a link back is appreciated but not required.
           </p>
