@@ -266,7 +266,7 @@ Hand-authored skeleton: [`examples/APP_FACTS.template.md`](./examples/APP_FACTS.
 
 ## Website
 
-The static site for [appfacts.dev](https://appfacts.dev) lives in [`site/`](./site/). On Cloudflare Pages, set the project root to `site` — no build step.
+The static site for [appfacts.dev](https://appfacts.dev) lives in [`site/`](./site/). Publish with `pnpm ship` (Wrangler Pages project `app-facts`, no build step). Git-connected Pages can also use project root `site`.
 
 Local preview (Microsoft **Live Preview**, extension `ms-vscode.live-server`):
 

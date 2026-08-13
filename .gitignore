@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 venv/
 node_modules/
+.wrangler/
 .DS_Store
 _py_canon.txt
 _js_canon.txt

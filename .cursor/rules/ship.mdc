@@ -1,0 +1,8 @@
+---
+description: Deploy the static site with pnpm ship
+alwaysApply: true
+---
+
+# Deploy
+
+Site publish is `pnpm ship` (Wrangler Pages project `app-facts`, uploads `site/` with no build step).
