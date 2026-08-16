@@ -38,7 +38,7 @@ It already validates the skeleton the siblings copy.
 
 ### Mid-term
 
-5. Greenfield templates (ForgeKit / CF starters) emit `APP_FACTS.md` on scaffold.
+5. Greenfield templates (ForgeTrail / CF starters) emit `APP_FACTS.md` on scaffold.
 6. GitHub Action or one-liner CI example for schema validate + `--check`.
 7. Badge adoption pass: make “get a badge” the default end of generate flow.
 8. One public **full panel** case study repo (App + others) linked from AppFacts site.
