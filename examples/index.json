@@ -1,0 +1,152 @@
+{
+  "label": "app-facts",
+  "version": "0.1.0",
+  "updated": "2026-08-20",
+  "schema": "https://appfacts.dev/schema/app-facts.schema.json",
+  "note": "Dogfood exemplars from Catalyst Forge open-source shelf products.",
+  "exemplars": [
+    {
+      "slug": "forgetrail",
+      "name": "ForgeTrail",
+      "type": "spec / tooling",
+      "status": "active",
+      "license": "Apache-2.0",
+      "homepage": "https://forgetrail.dev",
+      "path": "forgetrail/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNp1Uk1r3DAQ_StiTg1o10mOPrUYcihJCCS3UsqsNNaqK2uENHbiLvvfi2x320tvg3hf8zRnmKC90xBxIGjhgbOjt4w-gAaZU30riYxqlDAHHx1oKIIyFmgBjfiJQEPwhmKp4C8JzZF29_vbFWhO0J4hYHQjugr4ihO-muyTaPU2J1pn0JDHKH4J8cyW9j9LTbB5tvDEloLqOAp9iHrJLGw4qE9P3csNaDhykRXYBR5tHzATXDRYSgXab2eI0MLnoYqYVSNtEk2xJ9CQ_u9RKE-UlR9SoIGioHiOcNGr6C-2G_3VHGlANWHwdsEojFbVEpWPPWWKhq6094zRBcob929qZSkFnqvRUvmV4Uh6HyhlKmVjPfhAuwMWsmrZKooaMKJbYsLlu4Yymev6_zSjIUP7pzSVMk_eUlY9Z_VOh-KFFvZh9MHW_0toTujox6peuSmmoRacKXHxwnmugiKptE3jvBzHw97w0HQoGOYiu-Wydo-PXdPXSZYbu_wGeaPbgQ"
+    },
+    {
+      "slug": "ollanet",
+      "name": "ollanet",
+      "type": "CLI tool",
+      "status": "active",
+      "license": "MIT",
+      "homepage": "https://ollanet.dev",
+      "path": "ollanet/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNpVkU9LAzEQxb9KeCeF2OI1NymolepFbyKSZqe7sdkkZCbVpfS7S6r1z2nCzLx5P1722MFcakQ7EgxSCDaSQEOm3BqL1VJJSgEaLFYqw8A68TuCRvCOIre1--XT14bbwuwRbOyr7dvkacr06IrPotWd3dmvNzRKjeKPpg-po9kbQ2NILD72zTek2m2CLYSDRkeZYZ73iDAQ_oBGhgF9kKtNoH5d1MYHYvXuZUhVlEtj9sGKTxEH_X1gysQnjPyPUZ3IFdecUxEcXjR4537c_4BpFJgTs9qkorrk6khRjn6KvdBRv64-dC2XbN3W9vQ62mh7auoc89jSJpZG1oqG8zC48XJb1-rKtVusznJdB8_DbBrDecukUE7sJZWpQYhkNvN572Wo65lL43xhxYaJ5eI6lZ4uVqvF_PS7h0996atz"
+    },
+    {
+      "slug": "dictawhisper",
+      "name": "DictaWhisper",
+      "type": "web app (SSR)",
+      "status": "active",
+      "license": "MIT",
+      "homepage": "https://dictawhisper.com",
+      "path": "dictawhisper/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNpVkltr3DAQhf-KmKcWtGvyqqeASaG5lFDnrZQwK0-8imVJaMbemGX_e5H31n0Tc74ZnTnSHiYwdxoCDgQGWmcFd1vHiTJokDmV6o42ClNS35rm93fQwIIyMhhAK24i0OCdpcCFffn5diRsD2YPHkM3YleUtzlRY7NLotUjTng-v86yjQE05DGIW2z8ii2tP_k_7SPjQLuYezDQTOSFnpxo9fCVMjEvN87eha7IddNoVTcNaEAHBj6QhfLqtJZW0XsMJKDBxmEYg7MoLgYwwNH2JGsX4aChpcRg_uyhKPe8XPrJVe9KZypzcwxCoVVXcwd9xOniq4AbtH3hmPJE-QLd-jqxkjHwkoyLQVHoXKBLx9V5Qb0flF0siEo5WmIuCZzh6zJHPBP6VQlY3a595u-H2JJfBn5JylGijb7itj_1v9Sv6lxWPKYUs8Dhr4bN6HxbHjuh7bGj9wEDdpTBQAppKFlmSpGdxDyDga1IYlNVnZPtuFnbOFQ1CvqZZfUj5o5Wz891dfMVD_8Ay7foKw"
+    },
+    {
+      "slug": "aibreze",
+      "name": "aiBreze",
+      "type": "library",
+      "status": "active",
+      "license": "MIT",
+      "homepage": "https://aibreze.com",
+      "path": "aibreze/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNp1kU1rAyEQhv_KMmeTpVePDRRa0l42t1LKrE6Mjaui4xYb8t-Lu6GQQ29-PO_H6AVmkA8CPE4EEtA-JvohEMA1tgNnx4SpgoDMyCU3RrGdG-KsIp8b9fp8WAl1BnkBh94UNO3mUCMNKtnIonvBGdc1CEjFs10y34Km7VdeDKqz3oCE3TCAgFPIfNu7UPTRYWq5EdUZDX1O6NFQAgnRxwmuAjTFDPL9Ah4kfCf0xlFqijuLTlN0oU7kGa5ihQ3x0TqKiXK-CXRQpTHINvhuDVs1HwLyrP6C7sq1OrfeHXrdkTbUqTDFsozStGOxTrd3-n-QRDFkyyHVZsccs-x7Y_lUxq0KU79DRlczb55CMrTZ73c92nH5uusvQqie3Q"
+    },
+    {
+      "slug": "temper-pass",
+      "name": "TemperPass",
+      "type": "spec / tooling",
+      "status": "active",
+      "license": "MIT",
+      "homepage": "https://temperpass.dev",
+      "path": "temper-pass/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNpVkM1qwzAQhF_FzFmJ6VXXQKEl7cW5hVI28lZRI0uLtHYxwe9e7PTS2_58zOzOHRPsk0GigWGhPAgXoVphoLOssyrsmrbRnGNIHgZVSccKC3IaJoZBDI5TXeG3l9ODcDfYOyIlP5JfN6dZuHMliJrmlSZ61DAoY9Kwub_nnvffdROYNzOLQ9fB4Jqr_vUxj_1XpMJYDHqWCnu-I8Hip1DykQsM5B_Z9CwxzwMn3d7A8mFwGUPs1xuF3I08fw6UyHOBhSQZVvXCkmvQXGZYXFWl2rb1Qa_jZe_y0B5IKc5Vd8-5eN4dj4f2EeBuS3D5BTp8dpc"
+    },
+    {
+      "slug": "ember-dossier",
+      "name": "EmberDossier",
+      "type": "library",
+      "status": "active",
+      "license": "MIT",
+      "homepage": "https://emberdossier.com",
+      "path": "ember-dossier/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNpdkUFrAjEQhf_K8s5R6TW3IhQsbSnorZQyuzvG1GwSJrPKVvzvJUoFext47_G-mTnhAPtgEGlgWDjWGQ8ty6xPpXgWGOiUqxR8KyQTDIqSjgUW1Kk_MAyC7ziW6npdba6Obg97QqDoRnJV2UyZ1534rKZ5pgP9zcv1GgYyRvUXhLfU8_y7wGArNPAxyf4KtvWBs3Cp0i4V9dHBYhnS2G8DCTfv5LjgbNBzLrAfJ8QK6Vvhn0qZYfG4ano-cEh54KiNphT2XnE2V_O_mpqo2_quKV65cRxZSJPcAkeh6MLlTvmepucc0nRrwfnToB196OtdMnV7cvw1UCTHAosc81DZhXMqXpNMsNip5mIXC-d1N7bzLg2LJSmFqejsKYnj2cvLcnH_sPMvR1Wfxw"
+    },
+    {
+      "slug": "anticonfab",
+      "name": "anticonfab",
+      "type": "web app (SSR)",
+      "status": "active",
+      "license": "MIT",
+      "homepage": null,
+      "path": "anticonfab/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNpFkktv2zAQhP8KMacGYFv0qlOAnpLmAUTJKSiKNbWS1-ILJC1HNfTfC0quc-V-M5wd8owJzQ8NT47RgHwRE3xPO2iUOdazE-8Uxai-tO3LDTRyoXLMFTZFJoaGFcM-V_bx7nUjzIjmDEt-ONJQJ69z5NYkiUWrdmJbWKt7mmg7g0Y6-iJriKfQ8bdDhkafyPEppBENNtEvKesFsxU_VFsSexLfqZ9tC419yGUb2GDIqsxp4gQNEjR4tpYcYdHoOGY072d4NLjNq_Uhfx9X94gGMYmjNKu6_GeKRW-KYC15_s96LnWqOskmTJxm1YekHh4eVY2Tr6q_obsostmzIzWRlY6KBH9lDjn4xJEkXdBePpQj24fkuFP37fOT6lNw1f7TuUiM81ZZ1ZQQbJGo3u6UCS4Gz75g-a2RJ3Pd-lKGRrq2VSPHFCbpOK387ii2qw8ZyYw08B9Hngauiuijq3-Ec6kLrQ1-NXs2I5blHyoExjs"
+    },
+    {
+      "slug": "filepress",
+      "name": "FilePress",
+      "type": "monorepo",
+      "status": "active",
+      "license": "MIT",
+      "homepage": "https://getfilepress.com",
+      "path": "filepress/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNptkkGLGzEMhf-K0dnZoVefygZKt01KYbK9lKUotjLxxmMZWzNhCPnvxZNk9tAebX9Pen7SBUYwnzRE7AkMHHyglKkU0CBTqlc9R86UGDQUQRkKGEArfiTQELylWCq2fdndCHsCc4GAsRuwqy-7KVFrs0-iVTtSENLqG474uFu3rVZfd9sNaMhDFD87-cGOnt6rj0PGns6cT2Dgpv_uBTTsh-gCZTDwywvNzafgYwcG1m0LGo5c5H4OPLhDwEzqJ3ZU4KrBUSpgfl8ggoHPZS78XprTXDtVEWdSZ9qrDwNXfcNv9J17fVGW-8SRovyHHf1CPg8-OCXMQWF0ytGoCuWR8gLLkKPjc1wsxJGyzOkoYbXFfJqfH_wQ_cGTezi5nZTlKNVMymypFB87lXyi4CMtysAWw56yHO_iLUbsSCXOogJhoaIOnNXMVasUOPUUBa5vGspol-z-CVdDHUorKN6q-xCql9G7-tW3OjofXF2ThPaEHf3p5-ZVlmLq6_JRkSXolT2SrYlCXcTihfMEBo4iqZim6bwch_2T5b5Zo2CYiqy-cO5otdmsm4-Vvv4FzW_8rQ"
+    },
+    {
+      "slug": "ingotvault",
+      "name": "IngotVault",
+      "type": "CLI tool",
+      "status": "active",
+      "license": "Apache-2.0",
+      "homepage": "https://ingotvault.dev",
+      "path": "ingotvault/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNpVkUFrwzAMhf-K0dlttx19G4XBRtklvY0yVEdzvTq2sZSsoeS_D7dp2W5CfHrvSTrDAOZRQ8SOwICPLsmAfRDQIGOuvfXmVUlKATSwoPQMBtCKHwg0BG8pcsWeM9oDLZ6WD1fQHsGcIWB0PboKbMdMjS0-i1ZvOOC1Bg2lj-Iv9u-ppeU3g4ZDYvHRVfuQ-vYrYKGL7hjmdtPApKGlzGA-zhDBXALzTTVXy0bZ1GUfUHyKMOmZ49MM0IlsX43UtlHXUb5jPwWjC1RmtqUc0lhZSepPqmmngQd7T_EvcAFz20WxF1IYW4XMVH12Gva9D209VEZ7REefHUZ0VMdyzF1dsVBO7CWVsWqJZDarlfNy6PdLm7rVGgXDyLJ4ScXRYrNZr_68cfoFp6GiKQ"
+    },
+    {
+      "slug": "finetuna",
+      "name": "Finetuna",
+      "type": "CLI tool",
+      "status": "active",
+      "license": "MIT",
+      "homepage": "https://finetuna.net",
+      "path": "finetuna/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNpFkUFrGzEQhf-KeGc5plddDYEEt5fmVkqZ7E7WE0sjVRq5LMb_PSgb3NugeY_vzdMVF4RvHkqJEfAmytaV4GFrGS-H45OznCM8mpH1hgCaTC4MjygTaxuy708vm2I6I1wRSZdOy9g804V-TlWKefeyFt5meNSuJp_UH3nmh_cGj1NuJroMbsx9fotUGTePmUtD-HWFIoD1b5fKFR4FAaLGdYvkppwS6byLouxKzalYw81vPtImuynHXNuXtdkaRRdnXJMoRZe7lW53x79KusQ76X8mN3OJeU2s9tnOWQy33x6vXeI8Cig0nWnhP4mUFq4IKFrSqJWbIeCdm7lcXZMkkQZgEgQsYqf-6sY1WUdyVC65ieW6IuBkVlrY7zfZw5TT_kBGcW22e8x14d3xeNjfP_H2AeS2o5g"
+    },
+    {
+      "slug": "docupuncture",
+      "name": "Docupuncture",
+      "type": "monorepo",
+      "status": "active",
+      "license": "MIT",
+      "homepage": "https://docupuncture.dev",
+      "path": "docupuncture/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNpVkUFLAzEQhf_K8s5pi9dcC4JSvdibiKTZaRrNzoRkUllK_7ukVam3YeZ98yYvJxxh7wzYTQSLUXzLjb22QjDQOffuJCyFssCgqtNWYeG8xmPXpOiJa5c9PWyvCv8Je0JyHJoLffLoju7Fl5jVDNs507WGQWms8eL8LCMtPyoMDlI1coDFOkkb98kVwtlgpFxhX09gWATSfUyUC9XOZFjsSf1hKDSJ0tCHgxdWYsXZXKGv4jgkKj_ASDnJPBHroCJp2EsZ_I3lm0E9-j_Lm2sMCuzvoReuB9c3OY3CQ4165XctprGHkZ3_dIHeJ8cuUKcz5wkGPsKChS9P7CHXqFLmvl41V7tahaiHtlt6mVZrpy7NVRf3UgItNpv16t-Pnb8BxMCe5g"
+    },
+    {
+      "slug": "localberth",
+      "name": "LocalBerth",
+      "type": "web app (SSR)",
+      "status": "active",
+      "license": "Apache-2.0",
+      "homepage": "https://localberth.com",
+      "path": "localberth/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNpNUkuP1DAM_iuRTyClUx63nkAjIR4FCbo3hJCbetts0yTE7sxWo_nvKJmyy9X5Xv6cC5ygea3B40LQgAsGXU9JJtAgW8yzM_UKY1Qvuu7HS9DAgrIyNIBG7IlAg7OGPGfs-4hmourN4dUNaGZoLuDQjyuOGXC3RepMslG06k7khLT6jCf8Nzt2nVbdRM5p9fHuawsa0urFlnTfwkCHBwYN9wkXOoc0QwM3mS9WiuXmrB-zEVp3tn7IiqBhQMEeS8bue2slx54Cyw1c1oarhoEiQ_PzAh4aeMdF-YHruYjHvYwnc3UfkpKJ1IA89QHTAFd94_YkQqniP84Kvd3JkRJbFvKiWELCkYpCDEmUI2TiJ77s8Q3zTt5XU6tYZ2V7RvLjjnjuVtEjmVVs8MXg2H5SXB4Yrr809Kt1Qz5MRDPjSL8X9DhSyhF9XPLpiSV7lgIqM5GZcz2JYmArIW3QwCQSuanr0cq09gcTlvqIgm5jqT6ENFLVtsf6vx91_QtkIdFS"
+    },
+    {
+      "slug": "localhelm",
+      "name": "LocalHelm",
+      "type": "CLI tool",
+      "status": "active",
+      "license": "Apache-2.0",
+      "homepage": null,
+      "path": "localhelm/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNpFkcFqwzAQRH_FzFmJ2x51agkUSkMvKb2UEjby1lYiS0JaJzEh_15kp-Qqzey8nb3gCP2o4KlnaLhgyHXseijIGMvTav1WSQgOCllIhgwNMmKPDAVnDftcZC-RTMeLp-XDLDQH6Asc-Xagtgg-x8gbk2wUKKTBi50SP0LDy32Gwm-ink8hHaCxObITfreiKsnnaeLorG_LHLLuZH1TrTYbKOwG65rtBKjxZYVxVWg4ZujvCzw0nvM0bJ_rgy3ZERon3lUN5W4XKDXVPfmqZs8cWpSlhTxhV3xmM4gNvvoNqSq9mND35Jt8993gTM43_z_4v-JYEOevCX3u9vpz26SUFskcqOVtT55aTtCIPvZlr8QxZCshjdDoRGLWdd1a6Ybd0oS-XpGQG7MsXkNqebFer-r7Ra9_Do2lOw"
+    }
+  ]
+}
