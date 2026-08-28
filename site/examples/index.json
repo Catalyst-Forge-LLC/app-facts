@@ -1,7 +1,7 @@
 {
   "label": "app-facts",
   "version": "0.1.0",
-  "updated": "2026-08-20",
+  "updated": "2026-08-28",
   "schema": "https://appfacts.dev/schema/app-facts.schema.json",
   "note": "Dogfood exemplars from Catalyst Forge open-source shelf products.",
   "exemplars": [
@@ -91,7 +91,7 @@
       "homepage": "https://getfilepress.com",
       "path": "filepress/APP_FACTS.md",
       "dogfood": true,
-      "viewer": "/v#af1.eNptkkGLGzEMhf-K0dnZoVefygZKt01KYbK9lKUotjLxxmMZWzNhCPnvxZNk9tAebX9Pen7SBUYwnzRE7AkMHHyglKkU0CBTqlc9R86UGDQUQRkKGEArfiTQELylWCq2fdndCHsCc4GAsRuwqy-7KVFrs0-iVTtSENLqG474uFu3rVZfd9sNaMhDFD87-cGOnt6rj0PGns6cT2Dgpv_uBTTsh-gCZTDwywvNzafgYwcG1m0LGo5c5H4OPLhDwEzqJ3ZU4KrBUSpgfl8ggoHPZS78XprTXDtVEWdSZ9qrDwNXfcNv9J17fVGW-8SRovyHHf1CPg8-OCXMQWF0ytGoCuWR8gLLkKPjc1wsxJGyzOkoYbXFfJqfH_wQ_cGTezi5nZTlKNVMymypFB87lXyi4CMtysAWw56yHO_iLUbsSCXOogJhoaIOnNXMVasUOPUUBa5vGspol-z-CVdDHUorKN6q-xCql9G7-tW3OjofXF2ThPaEHf3p5-ZVlmLq6_JRkSXolT2SrYlCXcTihfMEBo4iqZim6bwch_2T5b5Zo2CYiqy-cO5otdmsm4-Vvv4FzW_8rQ"
+      "viewer": "/v#af1.eNptktFr2zAQxv8VoWenZq952giMdU27QUIpjDJU-eyoPeuEdHJqQv_3nRzHa6FPxt_9dPfdJ530oNdfKu1ND3qtW4cQIqSkK81jKFJPniIEEiWx4ZxEM5bdAKKgs-BTwW6v92fCvuj1SaPxXTZdqeylz85GF7hSuwGQoVI_zWAu2ma3q9SP_e1Wzsfs2U1O7qiBq-fio43i7UhR-urz-RvH06wRne9ElQ7y_5QdNvJ377hYO1DiuYyUmxZNBPVbLJWeFt2Hbd8q3UCQ1f6ctJfK1zQNek71yzQrlCCM8-q_mbfqjJ7JmWkjeQbffMINbqEmp4qJcKlyjr6ho5-JEoey5AeIyZFfsNYkXr32uAomJogz_SBwEcq6F_IY5QZwQWQ7pLEHzx_nZu9aB81M2ck9qxDJSixTv0dJerBLMp-EGUW-pH3p-wvR9GYuIlmD6tu1glewmaeFHpcLO-kgj0Z6_e2Nl085EXzoyxOExEvEK3sAW_LU5TkmxxTHMpk5pHVdd44P-enKUl9vDBscJanvFDtYbbeb-t1V_wOMmPsr"
     },
     {
       "slug": "ingotvault",
@@ -127,15 +127,15 @@
       "viewer": "/v#af1.eNpVkUFLAzEQhf_K8s5pi9dcC4JSvdibiKTZaRrNzoRkUllK_7ukVam3YeZ98yYvJxxh7wzYTQSLUXzLjb22QjDQOffuJCyFssCgqtNWYeG8xmPXpOiJa5c9PWyvCv8Je0JyHJoLffLoju7Fl5jVDNs507WGQWms8eL8LCMtPyoMDlI1coDFOkkb98kVwtlgpFxhX09gWATSfUyUC9XOZFjsSf1hKDSJ0tCHgxdWYsXZXKGv4jgkKj_ASDnJPBHroCJp2EsZ_I3lm0E9-j_Lm2sMCuzvoReuB9c3OY3CQ4165XctprGHkZ3_dIHeJ8cuUKcz5wkGPsKChS9P7CHXqFLmvl41V7tahaiHtlt6mVZrpy7NVRf3UgItNpv16t-Pnb8BxMCe5g"
     },
     {
-      "slug": "localberth",
-      "name": "LocalBerth",
+      "slug": "localslip",
+      "name": "LocalSlip",
       "type": "web app (SSR)",
       "status": "active",
       "license": "Apache-2.0",
-      "homepage": "https://localberth.com",
-      "path": "localberth/APP_FACTS.md",
+      "homepage": "https://localslip.dev",
+      "path": "localslip/APP_FACTS.md",
       "dogfood": true,
-      "viewer": "/v#af1.eNpNUkuP1DAM_iuRTyClUx63nkAjIR4FCbo3hJCbetts0yTE7sxWo_nvKJmyy9X5Xv6cC5ygea3B40LQgAsGXU9JJtAgW8yzM_UKY1Qvuu7HS9DAgrIyNIBG7IlAg7OGPGfs-4hmourN4dUNaGZoLuDQjyuOGXC3RepMslG06k7khLT6jCf8Nzt2nVbdRM5p9fHuawsa0urFlnTfwkCHBwYN9wkXOoc0QwM3mS9WiuXmrB-zEVp3tn7IiqBhQMEeS8bue2slx54Cyw1c1oarhoEiQ_PzAh4aeMdF-YHruYjHvYwnc3UfkpKJ1IA89QHTAFd94_YkQqniP84Kvd3JkRJbFvKiWELCkYpCDEmUI2TiJ77s8Q3zTt5XU6tYZ2V7RvLjjnjuVtEjmVVs8MXg2H5SXB4Yrr809Kt1Qz5MRDPjSL8X9DhSyhF9XPLpiSV7lgIqM5GZcz2JYmArIW3QwCQSuanr0cq09gcTlvqIgm5jqT6ENFLVtsf6vx91_QtkIdFS"
+      "viewer": "/v#af1.eNpNUkFu2zAQ_ArBUwtIdprefGphIEhaJUCj3IqioKiNxJgiGe5KjmDk71lSqt2TgOHszOyOTnKSuy-FdGoAuZPWa2XRmiALSXNI0BEaoUIQn-r68TPDSIpG5AelyUzAiDUaHCbu96B0D-X15moh6oPcnaRVrhtVlwhPrFnraAIVop7AEhTih5rUP2xf1_zQg7WFuH26r1gmjo5MDvfgW9i8IGPPkeMefWR5ucj8NJQtZ2tcl4yUsUfj2qTID60i1aicsf5VGUqxe4-0kPPW8p1pEHiz3yfpGP2GWfkFt4csHtZjnM3Fs4-CehCtwr7xKrasscw2QASxxFfLXl_X4QARDRI4Ekg-8kWyQvCRhAVOh-d5WuNrxHV4XU2MZFhzvjDxbWVcbivgDTQTvcsG--pOYH5ggz-FbEZj21QMt3XgFH8H5fgTU0QXhlQ9ICXPfICSK-UiC6kNY6NrDWrrEdK2fMQBwtJtTxRwt92e_6FNC1MqEIJHwwvP_5E6Q_3YbLQftnvuxs5I5Y2PHZRVtb9IyPcPZOHjHg"
     },
     {
       "slug": "localhelm",
@@ -143,10 +143,10 @@
       "type": "CLI tool",
       "status": "active",
       "license": "Apache-2.0",
-      "homepage": null,
+      "homepage": "https://localhelm.dev",
       "path": "localhelm/APP_FACTS.md",
       "dogfood": true,
-      "viewer": "/v#af1.eNpFkcFqwzAQRH_FzFmJ2x51agkUSkMvKb2UEjby1lYiS0JaJzEh_15kp-Qqzey8nb3gCP2o4KlnaLhgyHXseijIGMvTav1WSQgOCllIhgwNMmKPDAVnDftcZC-RTMeLp-XDLDQH6Asc-Xagtgg-x8gbk2wUKKTBi50SP0LDy32Gwm-ink8hHaCxObITfreiKsnnaeLorG_LHLLuZH1TrTYbKOwG65rtBKjxZYVxVWg4ZujvCzw0nvM0bJ_rgy3ZERon3lUN5W4XKDXVPfmqZs8cWpSlhTxhV3xmM4gNvvoNqSq9mND35Jt8993gTM43_z_4v-JYEOevCX3u9vpz26SUFskcqOVtT55aTtCIPvZlr8QxZCshjdDoRGLWdd1a6Ybd0oS-XpGQG7MsXkNqebFer-r7Ra9_Do2lOw"
+      "viewer": "/v#af1.eNpNUUFOwzAQ_Irlc5oAx56KIiEBFZciLggh19km2zq2ZW_SRlX_zjqmhZOl2ZnZ2fFZjnJ5X0irepBLaZxWpgPTy0LS5BNUr58FOWcYiaRoiIwpTTgCIwY12Jhoj17pDhYP5V0m6oNcnqVRth1UmwjvbLfRAT0VYjOCISjEixpVxlgUBks4p3hzDZT7yNgucK6jC2wms-gVaV4wGbRtslVojmgbUW82KTQnzYMPTBu89b28FLIBz8E_z9LyaBVnq32sDrObZ-wIW3HbJnYuiEbFbutUaFifdRRPv-zUTZyDCziBHgidnUXc1h8dvZ_yHUmDliDk5uZCeSy0672zYCneVCvUzuJuqnLIq5hBEadIwOd8FXI7oGlSw1z7gQv-7pXlJzD1enLnevC5-47Ix2VV3b63bGBMlYN3EcmF6R-pReqGbcnRqlqRMrx08eRCC4v1uv6zkJcfq5PB9g"
     }
   ]
 }

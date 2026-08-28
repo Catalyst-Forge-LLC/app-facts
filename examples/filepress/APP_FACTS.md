@@ -4,39 +4,46 @@ name: filepress
 type: monorepo
 status: active
 license: MIT
-homepage: https://getfilepress.com
 repository: https://github.com/Catalyst-Forge-LLC/filepress
 stack:
   language: "TypeScript, Svelte, JavaScript, CSS, HTML"
   runtime: Node.js
   framework: SvelteKit
-  bundler: Vite
   styling: CSS
+  build: Vite
   hosting: Cloudflare Pages
+  cli: filepress
 key_dependencies:
   - name: "@sveltejs/kit"
-    purpose: Core web framework
+    purpose: main framework
   - name: svelte
-    purpose: UI component framework
+    purpose: frontend framework
   - name: vite
-    purpose: Build tool and dev server
+    purpose: build tool
   - name: turndown
-    purpose: Convert HTML to Markdown
+    purpose: HTML conversion
+  - name: fast-xml-parser
+    purpose: XML parsing
+  - name: wrangler
+    purpose: deployment tool
   - name: unified
-    purpose: Unified content processing pipeline
-  - name: localberth
-    purpose: Manage port leases for local development
+    purpose: content processing
 services:
   - name: Cloudflare Pages
-    role: Static hosting provider
+    role: hosting
+  - name: Ollama
+    role: local AI execution
 build:
   package_manager: pnpm
   test: svelte-check
-  ci: undisclosed
+  ci: unknown
 generated:
-  date: 2026-08-20
+  date: 2026-08-28
   generator: "appfacts-cli v0.1.0 (ollama:gemma4:12b)"
-  inputs_fingerprint: bacd4f5d243c913f
+  inputs_fingerprint: 639186f958222b98
+credits:
+  generated_with: https://appfacts.dev
+  built_by: "Catalyst Forge — https://www.catalystforge.com/"
 ---
 
 # filepress
@@ -56,22 +63,25 @@ Curated stack label for this repository — aimed at an under-a-minute skim.
 | Language | TypeScript, Svelte, JavaScript, CSS, HTML |
 | Runtime | Node.js |
 | Framework | SvelteKit |
-| Bundler | Vite |
 | Styling | CSS |
+| Build | Vite |
 | Hosting | Cloudflare Pages |
+| CLI | filepress |
 
 ### Key dependencies
 
-- `@sveltejs/kit` — Core web framework
-- `svelte` — UI component framework
-- `vite` — Build tool and dev server
-- `turndown` — Convert HTML to Markdown
-- `unified` — Unified content processing pipeline
-- `localberth` — Manage port leases for local development
+- `@sveltejs/kit` — main framework
+- `svelte` — frontend framework
+- `vite` — build tool
+- `turndown` — HTML conversion
+- `fast-xml-parser` — XML parsing
+- `wrangler` — deployment tool
+- `unified` — content processing
 
 ### Services
 
-- **Cloudflare Pages** — Static hosting provider
+- **Cloudflare Pages** — hosting
+- **Ollama** — local AI execution
 
 ### Build
 
@@ -79,6 +89,6 @@ Curated stack label for this repository — aimed at an under-a-minute skim.
 - **Test** — svelte-check
 
 ---
-*Generated with [AppFacts](https://appfacts.dev) · Scan `APP_FACTS.png` or open the [visual label][appfacts-label]*
+*Generated with [AppFacts](https://appfacts.dev) · Built by [Catalyst Forge](https://www.catalystforge.com/) · [Visual label][appfacts-label]*
 
-[appfacts-label]: https://appfacts.dev/v#af1.eNptkkGLGzEMhf-K0dnZoVefygZKt01KYbK9lKUotjLxxmMZWzNhCPnvxZNk9tAebX9Pen7SBUYwnzRE7AkMHHyglKkU0CBTqlc9R86UGDQUQRkKGEArfiTQELylWCq2fdndCHsCc4GAsRuwqy-7KVFrs0-iVTtSENLqG474uFu3rVZfd9sNaMhDFD87-cGOnt6rj0PGns6cT2Dgpv_uBTTsh-gCZTDwywvNzafgYwcG1m0LGo5c5H4OPLhDwEzqJ3ZU4KrBUSpgfl8ggoHPZS78XprTXDtVEWdSZ9qrDwNXfcNv9J17fVGW-8SRovyHHf1CPg8-OCXMQWF0ytGoCuWR8gLLkKPjc1wsxJGyzOkoYbXFfJqfH_wQ_cGTezi5nZTlKNVMymypFB87lXyi4CMtysAWw56yHO_iLUbsSCXOogJhoaIOnNXMVasUOPUUBa5vGspol-z-CVdDHUorKN6q-xCql9G7-tW3OjofXF2ThPaEHf3p5-ZVlmLq6_JRkSXolT2SrYlCXcTihfMEBo4iqZim6bwch_2T5b5Zo2CYiqy-cO5otdmsm4-Vvv4FzW_8rQ
+[appfacts-label]: https://appfacts.dev/v#af1.eNptktFr2zAQxv8VoWenZq952giMdU27QUIpjDJU-eyoPeuEdHJqQv_3nRzHa6FPxt_9dPfdJ530oNdfKu1ND3qtW4cQIqSkK81jKFJPniIEEiWx4ZxEM5bdAKKgs-BTwW6v92fCvuj1SaPxXTZdqeylz85GF7hSuwGQoVI_zWAu2ma3q9SP_e1Wzsfs2U1O7qiBq-fio43i7UhR-urz-RvH06wRne9ElQ7y_5QdNvJ377hYO1DiuYyUmxZNBPVbLJWeFt2Hbd8q3UCQ1f6ctJfK1zQNek71yzQrlCCM8-q_mbfqjJ7JmWkjeQbffMINbqEmp4qJcKlyjr6ho5-JEoey5AeIyZFfsNYkXr32uAomJogz_SBwEcq6F_IY5QZwQWQ7pLEHzx_nZu9aB81M2ck9qxDJSixTv0dJerBLMp-EGUW-pH3p-wvR9GYuIlmD6tu1glewmaeFHpcLO-kgj0Z6_e2Nl085EXzoyxOExEvEK3sAW_LU5TkmxxTHMpk5pHVdd44P-enKUl9vDBscJanvFDtYbbeb-t1V_wOMmPsr
