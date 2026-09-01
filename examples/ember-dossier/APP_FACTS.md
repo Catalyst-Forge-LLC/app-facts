@@ -12,8 +12,8 @@ stack:
   framework: getfilepress
   hosting: Cloudflare Pages
 key_dependencies:
-  - name: aibreze
-    purpose: AI development toolkit
+  - name: smellcheck
+    purpose: Editorial rules for agents
   - name: getfilepress
     purpose: static site generator
   - name: wrangler
@@ -49,7 +49,7 @@ Curated stack label for this repository — aimed at an under-a-minute skim.
 
 ### Key dependencies
 
-- `aibreze` — AI development toolkit
+- `smellcheck` — Editorial rules for agents
 - `getfilepress` — static site generator
 - `wrangler` — Cloudflare deployment tool
 

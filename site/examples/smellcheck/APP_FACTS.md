@@ -1,11 +1,11 @@
 ---
 app_facts_version: 0.1.0
-name: aiBreze
+name: Smell Check
 type: library
 status: active
 license: MIT
-homepage: https://aibreze.com
-repository: https://github.com/Catalyst-Forge-LLC/aibreze
+homepage: https://smellcheck.dev
+repository: https://github.com/Catalyst-Forge-LLC/smellcheck
 stack:
   language: "TypeScript, JavaScript"
   runtime: Node.js
@@ -28,15 +28,15 @@ generated:
   inputs_fingerprint: 41995e42192b2350
 ---
 
-# aiBreze
+# Smell Check
 
 `library` · **active** · MIT
 
 Curated stack label for this repository — aimed at an under-a-minute skim.
 
-**[Open visual label →][appfacts-label]** · or scan `APP_FACTS.png`
+**[Open visual label →][appfacts-label]**
 
-[Repository](https://github.com/Catalyst-Forge-LLC/aibreze)
+[Repository](https://github.com/Catalyst-Forge-LLC/smellcheck)
 
 ### Stack
 
@@ -62,6 +62,6 @@ Curated stack label for this repository — aimed at an under-a-minute skim.
 - **Package Manager** — pnpm
 
 ---
-*Generated with [AppFacts](https://appfacts.dev) · Scan `APP_FACTS.png` or open the [visual label][appfacts-label]*
+*Generated with [AppFacts](https://appfacts.dev) · Open the [visual label][appfacts-label]*
 
-[appfacts-label]: https://appfacts.dev/v#af1.eNp1kU1rAyEQhv_KMmeTpVePDRRa0l42t1LKrE6Mjaui4xYb8t-Lu6GQQ29-PO_H6AVmkA8CPE4EEtA-JvohEMA1tgNnx4SpgoDMyCU3RrGdG-KsIp8b9fp8WAl1BnkBh94UNO3mUCMNKtnIonvBGdc1CEjFs10y34Km7VdeDKqz3oCE3TCAgFPIfNu7UPTRYWq5EdUZDX1O6NFQAgnRxwmuAjTFDPL9Ah4kfCf0xlFqijuLTlN0oU7kGa5ihQ3x0TqKiXK-CXRQpTHINvhuDVs1HwLyrP6C7sq1OrfeHXrdkTbUqTDFsozStGOxTrd3-n-QRDFkyyHVZsccs-x7Y_lUxq0KU79DRlczb55CMrTZ73c92nH5uusvQqie3Q
+[appfacts-label]: https://appfacts.dev/v#af1.eNp1UUtrAjEQ_ivLd45Kr7kKhRbby3orpYzJmE3NiyS7ZRH_e4krRQ-9TSbfa2bOmCCfBAJ5hkTv2bluO7A6QaDOqTWdPWTKMwRKpToWSJCqdmIIOKs4lIZ6e9kvCHWCPMNRMCOZ9rOfE_cq21RF90oTLTUE8hiqvfq-R83r73IVmJ0NBhLbvofAEEu9vV0c9dFRbr6J1IkMf3kKZDhDIoXkcRHQnArkxxkBEj-ZgnGcG-NBotOcXJw9h4qLWMCG69E6TplLuRF0VGPDULUxdIvZwvkUKJP6M3oI1-LccncUdMfacKeiT-N1lMY9jNbptqf_Bxmi57RscKg1FbnZlHYe1a6z1jw1J06x2BrzfIcytg7jYa2i32ypkptLXT3HbHi1223vNHD5BdsPrdY
