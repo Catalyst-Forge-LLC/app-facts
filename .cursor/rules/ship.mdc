@@ -5,4 +5,6 @@ alwaysApply: true
 
 # Deploy
 
-Site publish is `pnpm ship` (Wrangler Worker `app-facts`, uploads `site/` as static assets with no build step). This is a Worker, not a Pages project. Do not use `wrangler pages deploy`.
+appfacts.dev is a **git-connected Worker** (not a Pages project). A push to `origin/main` deploys `site/` automatically.
+
+`pnpm ship` is the optional direct upload (`wrangler deploy --config site/wrangler.jsonc`). Use it to publish the working tree without a GitHub push. Do not use `wrangler pages deploy`.
