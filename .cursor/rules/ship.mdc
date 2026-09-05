@@ -5,4 +5,4 @@ alwaysApply: true
 
 # Deploy
 
-Site publish is `pnpm ship` (Wrangler Pages project `app-facts`, uploads `site/` with no build step).
+Site publish is `pnpm ship` (Wrangler Worker `app-facts`, uploads `site/` as static assets with no build step). This is a Worker, not a Pages project. Do not use `wrangler pages deploy`.
