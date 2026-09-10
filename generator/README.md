@@ -11,7 +11,18 @@ manifest, as long as a README or signal file is present.
 Both languages share [`prompt.md`](./prompt.md) so the system prompt cannot drift.
 
 The **script directory** and the **target project** are independent. Always pass the
-project to scan as a positional `TARGET` (or `--path`).
+project to scan as a positional `TARGET` (or `--path`). Scanning `.` inside this
+checkout labels AppFacts itself, not the app you meant.
+
+## Extraction vs curation vs verification
+
+| Step | What happens | What it does not prove |
+|---|---|---|
+| **Extraction** | Deterministic scan of manifests, signals, README excerpt, language census, and `.env.example` key names | That the later summary is complete |
+| **Curation** | LLM (or a human) picks stack lines, up to 8 key dependencies, and optional services | That those picks match the repo |
+| **Verification** | Schema required-fields/enums, plus `--check` against `generated.inputs_fingerprint` | Factual correctness or a full SBOM |
+
+Absent evidence should stay absent, `unknown`, or `undisclosed` in hand-authored files. Do not invent packages or services. There is no `--no-llm` generate mode. `--check` is the no-model path and only compares scanned inputs to the stored fingerprint.
 
 ## Install
 

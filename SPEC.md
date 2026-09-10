@@ -189,6 +189,16 @@ Generators **SHOULD** print a canonical URL (when known) and the viewer URL when
 | **0.1.1** | Document `af1` payload (`SPEC-af1.md`); pin fingerprint canonicalization; clarify body drift vs `--check`; canonical schema URL first; state `stack` ≥1 entry; confirm `key_dependencies` 0–8 and `services` 0–6 bounds. |
 | **0.1** | Initial required fields, conventions, `--check`, `/v` overview. |
 
+## Compatible proposal (not implemented)
+
+AppFacts currently has no application-version field. Freshness uses `generated.date`
+and `generated.inputs_fingerprint`. An optional `version` string (the application or
+package version the label describes) would be a compatible addition and would not
+invalidate existing files. Do not treat this paragraph as an approved schema change.
+
+A shared `reviewed` object is proposed at the suite level in
+[x-facts `PROVENANCE.md`](../x-facts/specs/PROVENANCE.md). It is not a runtime field here.
+
 ## License
 
 CC0 — public domain. No attribution required.

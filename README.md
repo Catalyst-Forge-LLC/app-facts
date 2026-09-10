@@ -7,6 +7,7 @@
 <p align="center">
   A tiny, standardized <code>APP_FACTS.md</code> that lives next to your <code>README.md</code>
   and answers one question in under a minute: <em>what is this app built from?</em>
+  Curated stack label, not an SBOM or a security audit.
 </p>
 
 <p align="center">
@@ -92,7 +93,7 @@ See the [full worked example](./examples/APP_FACTS.md) and the [specification](.
 
 ## The generator
 
-You *can* hand-write `APP_FACTS.md`, but the whole point is near-zero effort. The generator scans your repo's manifest files and README, asks an LLM to produce a curated summary, and writes the file for you — frontmatter and rendered table both.
+You *can* hand-write `APP_FACTS.md`, but the usual path is the generator. It **extracts** manifests and signals, asks an LLM to **curate** a short summary, then writes frontmatter and a rendered table. Schema validation and `--check` are **verification** of structure and input freshness, not proof the curated lines are true.
 
 It ships in **two identical flavors** so you can use whatever's already on your machine:
 
@@ -245,10 +246,12 @@ python3 generator/generate_app_facts.py TARGET --check
 
 ## How it works
 
-1. **Scan.** Detect manifests (structured `package.json` summaries), framework/deploy/CI signals, env-template **keys**, signal files, language census, package manager (from lockfiles), README excerpt, and the git remote.
-2. **Prompt.** Send that curated summary — never source or secrets — to the chosen LLM using the shared [`generator/prompt.md`](./generator/prompt.md) (*curate, not dump*; max 8 key dependencies; optional max 6 services).
-3. **Enrich.** Autofill `repository` from `git remote`, `license` from `LICENSE*` / README, and `build.package_manager` / CI when blank; coerce `status` to the allowed enum; stamp `generated.inputs_fingerprint`.
-4. **Validate + render.** Check required fields against the schema rules, write YAML frontmatter, a denser Markdown body (with a link to the visual label), and `APP_FACTS.png` — a QR code to `https://appfacts.dev/v#…` carrying a compressed facts payload (no backend).
+1. **Extract.** Detect manifests (structured `package.json` summaries), framework/deploy/CI signals, env-template **keys**, signal files, language census, package manager (from lockfiles), README excerpt, and the git remote. Source bodies and real `.env` files are never read.
+2. **Curate.** Send that scan summary to the chosen LLM using the shared [`generator/prompt.md`](./generator/prompt.md) (*curate, not dump*, max 8 key dependencies, optional max 6 services). There is no generate path that skips this step.
+3. **Enrich.** Autofill `repository` from `git remote`, `license` from `LICENSE*` / README, and `build.package_manager` / CI when blank. Coerce `status` to the allowed enum. Stamp `generated.inputs_fingerprint`.
+4. **Verify structure, then render.** Check required fields against the schema, write YAML frontmatter, a Markdown body, and `APP_FACTS.png` (QR to `https://appfacts.dev/v#…`). A passing schema check does not prove the curated summary is complete or correct.
+
+Featured shelf example: [`examples/smellcheck/APP_FACTS.md`](./examples/smellcheck/APP_FACTS.md) (`generated.date` 2026-08-20, `inputs_fingerprint` `41995e42192b2350`). To refresh that label, scan the Smell Check repository, not this generator repo.
 
 ## Validating a file
 

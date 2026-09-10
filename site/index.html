@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AppFacts — A Nutrition Facts label for software</title>
-  <meta name="description" content="APP_FACTS.md: a tiny, curated, machine-parseable label for what an app is built from. Spec, schema, and generators from Catalyst Forge." />
+  <title>AppFacts · A compact label for what an app is built from</title>
+  <meta name="description" content="Give a repository a compact, readable description of its application stack. AppFacts is a curated label, not an SBOM or a security audit." />
   <link rel="canonical" href="https://appfacts.dev/" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
@@ -58,11 +58,11 @@
 
     /* ----- Hero ----- */
     .hero {
-      min-height: 100svh;
+      min-height: auto;
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
-      padding: 2.25rem 0 0;
+      justify-content: flex-start;
+      padding: 1.5rem 0 0;
       position: relative;
       overflow: hidden;
     }
@@ -81,7 +81,7 @@
 
     .hero-copy {
       position: relative;
-      padding-bottom: 1.75rem;
+      padding-bottom: 1.1rem;
       animation: fadeup 800ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }
 
@@ -90,10 +90,10 @@
     .brand {
       font-family: var(--font-display);
       font-weight: 800;
-      font-size: clamp(3rem, 8vw, 5rem);
+      font-size: clamp(2.4rem, 7vw, 3.8rem);
       letter-spacing: -0.04em;
       line-height: 0.95;
-      margin: 0 0 1rem;
+      margin: 0 0 0.7rem;
       color: #fff;
     }
 
@@ -105,17 +105,17 @@
     .lede {
       font-family: var(--font-display);
       font-weight: 500;
-      font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+      font-size: clamp(1.05rem, 2.2vw, 1.3rem);
       line-height: 1.35;
       color: #e8eef5;
-      max-width: 28ch;
-      margin: 0 0 0.85rem;
+      max-width: 36ch;
+      margin: 0 0 0.7rem;
     }
 
     .sub {
       color: var(--mute);
-      max-width: 40ch;
-      margin: 0 0 1.75rem;
+      max-width: 48ch;
+      margin: 0 0 1.15rem;
     }
 
     .cta {
@@ -395,36 +395,37 @@
   <header class="hero">
     <div class="wrap hero-copy">
       <h1 class="brand">App<span>Facts</span></h1>
-      <p class="lede">A Nutrition Facts label for software, part of the <a href="https://xfacts.dev">xFacts</a> suite.</p>
+      <p class="lede">What is this app built from? Part of the <a href="https://xfacts.dev">xFacts</a> suite.</p>
       <p class="sub">
-        A tiny <code>APP_FACTS.md</code> beside your README that answers one question in under a minute:
-        what is this app built from?
+        A compact <code>APP_FACTS.md</code> beside your README. Curated stack, not an exhaustive
+        SBOM or a vulnerability scan.
       </p>
       <div class="cta">
-        <a class="btn btn-primary" href="https://github.com/Catalyst-Forge-LLC/app-facts">View on GitHub</a>
+        <a class="btn btn-primary" href="#generate">Generate one</a>
         <a class="btn btn-ghost" href="https://github.com/Catalyst-Forge-LLC/app-facts/blob/main/SPEC.md">Read the spec</a>
-        <a class="btn btn-ghost" href="#generate">Generate one</a>
+        <a class="btn btn-ghost" href="https://github.com/Catalyst-Forge-LLC/app-facts">GitHub</a>
       </div>
     </div>
 
-    <div class="label-plane" aria-label="Example App Facts label">
+    <div class="label-plane" aria-label="Featured App Facts label for Smell Check">
       <div class="label-plane-inner">
         <h2>App Facts</h2>
-        <div class="serving">Serving size: one repository · Read time: under a minute</div>
+        <div class="serving">Smell Check · as of 2026-08-20 · fingerprint 41995e42192b2350</div>
         <div class="label-cols">
-          <div class="row thick"><strong>Type</strong><span>web app (SPA)</span></div>
+          <div class="row thick"><strong>Type</strong><span>library</span></div>
           <div class="row thick"><strong>Status</strong><span>active</span></div>
           <div class="row"><strong>License</strong><span>MIT</span></div>
-          <div class="row"><strong>Language</strong><span>TypeScript</span></div>
-          <div class="row"><strong>Framework</strong><span>React 18 + Vite</span></div>
-          <div class="row"><strong>Backend</strong><span>Fastify</span></div>
-          <div class="row thick"><strong>Database</strong><span>PostgreSQL 16</span></div>
-          <div class="row thick"><strong>Hosting</strong><span>Vercel · Fly.io</span></div>
+          <div class="row"><strong>Language</strong><span>TypeScript, JavaScript</span></div>
+          <div class="row"><strong>Runtime</strong><span>Node.js</span></div>
+          <div class="row"><strong>Hosting</strong><span>Cloudflare</span></div>
+          <div class="row thick"><strong>Package manager</strong><span>pnpm</span></div>
+          <div class="row thick"><strong>Repository</strong><span>github.com/Catalyst-Forge-LLC/smellcheck</span></div>
           <div class="deps">
-            <b>Key dependencies</b>
-            <code>@tanstack/react-query</code> · server state ·
-            <code>zod</code> · validation ·
-            <code>prisma</code> · ORM
+            <b>Key dependencies (curated)</b>
+            <code>wrangler</code> · Cloudflare deploy ·
+            <code>getfilepress</code> · docs
+            · <a href="/examples/smellcheck/APP_FACTS.md">raw YAML</a>
+            · <a href="/v#af1.eNp1UUtrAjEQ_ivLd45Kr7kKhRbby3orpYzJmE3NiyS7ZRH_e4krRQ-9TSbfa2bOmCCfBAJ5hkTv2bluO7A6QaDOqTWdPWTKMwRKpToWSJCqdmIIOKs4lIZ6e9kvCHWCPMNRMCOZ9rOfE_cq21RF90oTLTUE8hiqvfq-R83r73IVmJ0NBhLbvofAEEu9vV0c9dFRbr6J1IkMf3kKZDhDIoXkcRHQnArkxxkBEj-ZgnGcG-NBotOcXJw9h4qLWMCG69E6TplLuRF0VGPDULUxdIvZwvkUKJP6M3oI1-LccncUdMfacKeiT-N1lMY9jNbptqf_Bxmi57RscKg1FbnZlHYe1a6z1jw1J06x2BrzfIcytg7jYa2i32ypkptLXT3HbHi1223vNHD5BdsPrdY">open visual label</a>
           </div>
         </div>
       </div>
@@ -438,12 +439,13 @@
         <p class="section-lead">Manifests are complete but noisy. README tech stacks are prose that rots.</p>
         <p>
           <code>package.json</code>, <code>pyproject.toml</code>, <code>Cargo.toml</code> and friends are written for
-          package managers — full trees, pinned versions, dev tooling. Humans (and agents) need the label on the
-          side of the box, not the supply chain.
+          package managers. They include full trees, pinned versions, and dev tooling. Humans and agents
+          need the label on the side of the box, not the supply chain.
         </p>
         <p>
           <strong>AppFacts</strong> sits in between: curated, glanceable, and still machine-parseable via YAML
-          frontmatter. YAML is the source of truth; the Markdown table is for humans.
+          frontmatter. YAML is the source of truth. The Markdown table is for humans. Schema validity
+          does not prove the curated lines are complete or correct.
         </p>
         <ul class="who">
           <li>New contributors orienting in an unfamiliar repo</li>
@@ -454,10 +456,27 @@
       </div>
     </section>
 
+    <section id="how-it-is-made">
+      <div class="wrap prose">
+        <h2 class="section-title">Extraction, curation, and verification</h2>
+        <p class="section-lead">Three jobs. Do not collapse them into "the generator said so."</p>
+        <ul class="who">
+          <li><strong>Extraction</strong> is deterministic. The scanner reads manifests, lockfile package-manager signals, framework and deploy files, README excerpts, a language census, and <code>.env.example</code> key names. It never reads source bodies or real <code>.env</code> files.</li>
+          <li><strong>Curation</strong> is editorial. An LLM (or a human) selects stack lines, up to eight key dependencies, and optional services. Those lines need review. Absent evidence stays absent or <code>unknown</code>, not guessed.</li>
+          <li><strong>Verification</strong> is separate. The schema checks required fields and enums. <code>--check</code> re-scans inputs and compares <code>generated.inputs_fingerprint</code>. Neither step proves the curated summary is true.</li>
+        </ul>
+        <p>
+          Autofill can copy <code>repository</code> from <code>git remote</code>, license from
+          <code>LICENSE*</code> or the README, and package manager from the lockfile when those
+          fields are blank. That is still extraction, not a review.
+        </p>
+      </div>
+    </section>
+
     <section id="format">
       <div class="wrap">
         <h2 class="section-title">The format</h2>
-        <p class="section-lead">Frontmatter you can validate. A table you can skim.</p>
+        <p class="section-lead">Frontmatter you can validate. A table you can skim. Featured data is Smell Check, not the teaching snippet below.</p>
         <div class="split">
           <pre aria-label="Example APP_FACTS frontmatter">---
 app_facts_version: "0.1.0"
@@ -509,6 +528,9 @@ generated:
         <p class="section-lead">
           Catalyst Forge ships <code>APP_FACTS.md</code> on the open-source shelf.
           Machine index: <a href="/examples/index.json"><code>/examples/index.json</code></a>.
+          Featured above: <a href="/examples/smellcheck/APP_FACTS.md">Smell Check</a>, generated
+          2026-08-20, fingerprint <code>41995e42192b2350</code>. Regenerating that label means
+          scanning the Smell Check repo, not this generator repo.
         </p>
         <ul class="who">
           <li><a href="/examples/forgetrail/APP_FACTS.md">ForgeTrail</a> · <a href="/examples/smellcheck/APP_FACTS.md">Smell Check</a> · <a href="/examples/temper-pass/APP_FACTS.md">TemperPass</a></li>
@@ -523,15 +545,17 @@ generated:
       <div class="wrap">
         <h2 class="section-title">Generate one</h2>
         <p class="section-lead">
-          Dual generators (Python &amp; Node) scan manifests, framework/deploy signals, a language census,
-          and <code>.env.example</code> keys (never your source or secrets) — then ask an LLM to curate.
-          Local-first via Ollama, or OpenAI / Anthropic / xAI / Gemini.
+          Smallest Node route: pass the <strong>project to scan</strong>, not the AppFacts checkout,
+          unless you mean to label this repo. Node 18+, zero npm deps, local Ollama.
         </p>
         <div class="split">
-          <pre># Node 18+ — zero npm deps
-# Pass the project to scan (script location ≠ target):
+          <pre># Scan /path/to/my-app (script location is not the target)
 node /path/to/app-facts/generator/generate_app_facts.js \
   /path/to/my-app --provider ollama --model llama3.1
+
+# Stale-input check, no model required
+node /path/to/app-facts/generator/generate_app_facts.js \
+  /path/to/my-app --check
 
 # Python 3.8+
 pip install -r /path/to/app-facts/generator/requirements.txt
@@ -540,8 +564,13 @@ python3 /path/to/app-facts/generator/generate_app_facts.py \
           <div class="prose">
             <p>
               Writes <code>APP_FACTS.md</code> and <code>APP_FACTS.png</code>.
-              The QR opens a portable visual label at <a href="/v/">/v</a> (facts travel in the URL hash — no server).
+              The QR opens a portable visual label at <a href="/v/">/v</a>. Facts travel in the URL hash, with no server.
               Add <code>--badge</code> for a footer-ready HTML snippet (see <a href="/badge/">get a badge</a>).
+            </p>
+            <p>
+              Hosted providers (OpenAI, Anthropic, xAI, Gemini) are optional. There is no
+              deterministic-only generate mode. <code>--check</code> is the no-model path, and it
+              only compares scanned inputs to the stored fingerprint.
             </p>
             <p>
               Optional credit footer:
