@@ -20,6 +20,11 @@
       "description": "Spec version this file conforms to, e.g. 0.1.0"
     },
     "name": { "type": "string", "minLength": 1 },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Application or package version this label describes. Optional. Freshness still uses generated.date and inputs_fingerprint."
+    },
     "type": {
       "type": "string",
       "minLength": 1,
@@ -82,6 +87,20 @@
           "type": "string",
           "pattern": "^[a-f0-9]{16}$",
           "description": "First 16 hex chars of SHA-256 over the generator's scanned inputs. Used by --check to detect staleness."
+        }
+      },
+      "additionalProperties": false
+    },
+    "reviewed": {
+      "type": "object",
+      "description": "Optional human review stamp. Presence is not certification.",
+      "required": ["date", "by", "status"],
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "by": { "type": "string", "minLength": 1 },
+        "status": {
+          "type": "string",
+          "enum": ["publisher-authored", "independently-reviewed", "stale"]
         }
       },
       "additionalProperties": false

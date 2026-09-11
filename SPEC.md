@@ -1,4 +1,4 @@
-# AppFacts Specification — v0.1.3
+# AppFacts Specification — v0.1.4
 
 ## File
 
@@ -39,6 +39,8 @@ If the stack cannot be determined, generators **MUST** still emit a non-empty `s
 | `generated.inputs_fingerprint` | string | 16-char hex SHA-256 prefix of scanned inputs; enables `--check` |
 | `credits.generated_with` | string (URL) | e.g. `"https://appfacts.dev"` |
 | `credits.built_by` | string | Author/consultancy name + link |
+| `version` | string | Application or package version this label describes |
+| `reviewed` | object | Optional `{date, by, status}`. Presence is not certification. |
 
 ## Conventions
 
@@ -176,7 +178,7 @@ Generators **SHOULD** print a canonical URL (when known) and the viewer URL when
 
 ## Versioning
 
-- **This document:** v0.1.3 (publication & discovery; see revision history). Does not invalidate existing files.
+- **This document:** v0.1.4 (optional `version` and `reviewed`). Does not invalidate existing files.
 - **Files** declare `app_facts_version` (currently `"0.1.0"`) so tooling can evolve independently of the prose document. Generators MUST emit the **file-format** version (`"0.1.0"`), not this document's version.
 - Required-field list may still change before v1.0.
 
@@ -184,20 +186,11 @@ Generators **SHOULD** print a canonical URL (when known) and the viewer URL when
 
 | Spec doc | Notes |
 |---|---|
+| **0.1.4** | Optional `version` (application or package) and optional shared `reviewed` object. Existing files stay valid. |
 | **0.1.3** | Publication & discovery: repo-root pointer, well-known fallback, link to suite discovery contract. |
 | **0.1.2** | Make the fingerprint deterministic and prompt-independent: pin the `package.json` manifest canonical form (sorted `name@versionRange`), fix an 8192-byte excerpt limit for all excerpted inputs, and add normative serialization-framing rules (one entry per append, embedded newlines preserved, empty values still contribute a line). Clarify generators emit file-format version `0.1.0`, not the doc version. |
 | **0.1.1** | Document `af1` payload (`SPEC-af1.md`); pin fingerprint canonicalization; clarify body drift vs `--check`; canonical schema URL first; state `stack` ≥1 entry; confirm `key_dependencies` 0–8 and `services` 0–6 bounds. |
 | **0.1** | Initial required fields, conventions, `--check`, `/v` overview. |
-
-## Compatible proposal (not implemented)
-
-AppFacts currently has no application-version field. Freshness uses `generated.date`
-and `generated.inputs_fingerprint`. An optional `version` string (the application or
-package version the label describes) would be a compatible addition and would not
-invalidate existing files. Do not treat this paragraph as an approved schema change.
-
-A shared `reviewed` object is proposed at the suite level in
-[x-facts `PROVENANCE.md`](../x-facts/specs/PROVENANCE.md). It is not a runtime field here.
 
 ## License
 
