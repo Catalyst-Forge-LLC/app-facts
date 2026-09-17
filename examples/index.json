@@ -1,7 +1,7 @@
 {
   "label": "app-facts",
   "version": "0.1.0",
-  "updated": "2026-08-28",
+  "updated": "2026-09-17",
   "schema": "https://appfacts.dev/schema/app-facts.schema.json",
   "note": "Dogfood exemplars from Catalyst Forge open-source shelf products.",
   "exemplars": [
@@ -147,6 +147,17 @@
       "path": "localhelm/APP_FACTS.md",
       "dogfood": true,
       "viewer": "/v#af1.eNpNUUFOwzAQ_Irlc5oAx56KIiEBFZciLggh19km2zq2ZW_SRlX_zjqmhZOl2ZnZ2fFZjnJ5X0irepBLaZxWpgPTy0LS5BNUr58FOWcYiaRoiIwpTTgCIwY12Jhoj17pDhYP5V0m6oNcnqVRth1UmwjvbLfRAT0VYjOCISjEixpVxlgUBks4p3hzDZT7yNgucK6jC2wms-gVaV4wGbRtslVojmgbUW82KTQnzYMPTBu89b28FLIBz8E_z9LyaBVnq32sDrObZ-wIW3HbJnYuiEbFbutUaFifdRRPv-zUTZyDCziBHgidnUXc1h8dvZ_yHUmDliDk5uZCeSy0672zYCneVCvUzuJuqnLIq5hBEadIwOd8FXI7oGlSw1z7gQv-7pXlJzD1enLnevC5-47Ix2VV3b63bGBMlYN3EcmF6R-pReqGbcnRqlqRMrx08eRCC4v1uv6zkJcfq5PB9g"
+    },
+    {
+      "slug": "forebalance",
+      "name": "ForeBalance",
+      "type": "web app (SPA)",
+      "status": "active",
+      "license": "MIT",
+      "homepage": "https://forebalance.app",
+      "path": "forebalance/APP_FACTS.md",
+      "dogfood": true,
+      "viewer": "/v#af1.eNptkk1v2zAMhv-KwdMKKA161WldgG7FWqBAul2GYaAlxlYtS4JIJzOC_PdBtvNx2E0iH5IvX-kIe9APCgL2BBqeYqYv6DEYAgUyphI8UF1hStWn7dvjHShgQRkYNKARty-gd4YCF_b1-X0mTAf6CB5DM2BTMu9joq3JLgkoyEMQN02sczwwZVCwy9jTIeYONGz35IW-O5majd6FpkSRGRSQdRIzaNhES68u55gnLOZ5ko8G_Xa5Kmgjy1y_8XGwO4-ZqjdsqPSqB-ctaPjphOCkwFJi0L-OEEDDZ55kfPC6m5SkW2WTJdyS93BSMz_jC_jj-RK_9kGLSSivioXOLOR8qehvilkuRSZa6s_LFUwyBi6Wx1AtFpxZi-MHL5hFoapHaS_ZHnNHdkm7sCrCW_KpwmArrONwHcqzw7Oq0RPD6bcC3puLJ__xMF93OHtdqhZrj5DQdNjQnx4DNlToFFJf_hexgIa9mw4KjAMNX518G-rqcVqUy5u0sac0P20rkliv17uYqZ7_6T2mVERQilxMGW-wxkk71Pcm9usNCvqRZfUUc0Orl5fNbRM4_QOCAQLO"
     }
   ]
 }
