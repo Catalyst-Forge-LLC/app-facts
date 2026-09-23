@@ -304,3 +304,5 @@ This is **v0.1.2** — the spec's required fields may still shift before v1.0. I
 <p align="center">
   Part of <a href="https://appfacts.dev">appfacts.dev</a>
 </p>
+
+[See the rest of the Catalyst Forge shelf.](https://catalystforge.com/tools/)
