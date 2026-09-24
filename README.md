@@ -107,7 +107,7 @@ Both read the same inputs, use the same prompt, and emit byte-for-byte comparabl
 
 ### What the model actually sees
 
-Only **manifest summaries** (root or one level down — structured `package.json` dependency *names*, `pyproject.toml`, …), **framework/deploy/CI signals**, `.env.example`-style templates (**key names only** — never real `.env` files), a few **signal files** (`LICENSE`, `SPEC.md`, …), a short **README excerpt**, a language census, and a top-level file listing. Repos without a package manifest still work when a README (or signals) describe the project. **Your source code and secrets are never sent.** Use the `ollama` provider if you want nothing to leave your machine at all.
+Only **manifest summaries** (root or one level down — structured `package.json` dependency *names*, `pyproject.toml`, …), **framework/deploy/CI signals**, `.env.example`-style templates (**key names only** — never real `.env` files), a few **signal files** (`LICENSE`, `SPEC.md`, …), a short **README excerpt**, a language census, and a top-level file listing. Repos without a package manifest still work when a README (or signals) describe the project. The scanner excludes source-file bodies and real `.env` files. It sends the documented manifest summaries, excerpts, and signals to your chosen model endpoint. Review those inputs before using a hosted provider. With Ollama on this computer, model processing stays here. A remote `--ollama-host` receives the supplied inputs.
 
 ## Install & run
 
@@ -140,11 +140,11 @@ node generator/generate_app_facts.js . --provider ollama --model llama3.1
 
 ## Choosing a provider
 
-Both versions take `--provider` and `--model`. Local-first via Ollama needs no key and sends nothing off-device; the hosted providers each read one environment variable.
+Both versions take `--provider` and `--model`. Ollama on this computer needs no key, and model processing stays here. A remote `--ollama-host` receives the supplied inputs. The hosted providers each read one environment variable.
 
 | Provider | Env var | Example model | Notes |
 |---|---|---|---|
-| `ollama` | — | `llama3.1` | Local. Nothing leaves your machine. |
+| `ollama` | — | `llama3.1` | On this computer, model processing stays here. A remote `--ollama-host` receives the inputs. |
 | `openai` | `OPENAI_API_KEY` | `gpt-4o` | |
 | `anthropic` | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` | |
 | `xai` | `XAI_API_KEY` | `grok-4` | |

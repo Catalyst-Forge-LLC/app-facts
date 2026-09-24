@@ -82,7 +82,7 @@ node generate_app_facts.js /path/to/my-app --check
 
 ## Notes
 
-- The model sees manifests, framework/deploy signals, env-template **keys**, signal files, and a README excerpt — never source bodies and never real `.env` secrets.
+- The model sees manifests, framework/deploy signals, env-template **keys**, signal files, and a README excerpt. It does not see source-file bodies or real `.env` files. Those excerpts can still contain secrets, so review them before using a hosted provider. A remote Ollama host receives the same inputs.
 - Optional frontmatter `services` (max 6) captures hosted integrations (Stripe, PostHog, …) separately from package `key_dependencies`.
 - Output includes `generated.inputs_fingerprint` (16-char SHA-256 prefix of scanned inputs).
 - `--check` re-scans and fails if that fingerprint no longer matches.
