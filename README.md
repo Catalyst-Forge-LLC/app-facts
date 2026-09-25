@@ -22,9 +22,9 @@
 
 ## What is this?
 
-`package.json`, `pyproject.toml`, `Cargo.toml` and friends are **complete but noisy** — full dependency trees, dev tooling, pinned versions. They're written for package managers, not for a human trying to get their bearings.
+Manifests describe package requirements in detail. They are written for package managers. AppFacts selects the stack information a reader needs for orientation and records it in a consistent format.
 
-READMEs have a "Tech Stack" section by convention, but it's **unstructured prose that rots** and can't be validated or parsed.
+A README tech-stack section is prose. It cannot be validated or parsed as a label.
 
 `APP_FACTS.md` sits between the two: **curated, human-glanceable, and still machine-parseable** via YAML frontmatter. Think of it as the label on the side of the box — not the full ingredient supply chain, just the facts that tell you what you're looking at.
 
@@ -111,12 +111,19 @@ Only **manifest summaries** (root or one level down — structured `package.json
 
 ## Install & run
 
-Pass the **project to scan** as a positional path (or `--path`). The script location and the target repo are independent — you do not need to `cd` into either.
+Clone the AppFacts repository first. There is no published CLI. Choose the Node or Python generator, then point it at the app you want to label. Generation uses a model. `--check` checks the freshness of an existing label without a model.
+
+```bash
+git clone https://github.com/Catalyst-Forge-LLC/app-facts
+cd app-facts
+```
+
+Pass the **project to scan** as a positional path (or `--path`). The script location and the target repo are independent.
 
 ### Python
 
 ```bash
-# once — from this repo (or any checkout):
+# once, from the AppFacts checkout:
 pip install -r generator/requirements.txt   # PyYAML + segno
 
 # scan any project (writes TARGET/APP_FACTS.md + .png):

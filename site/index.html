@@ -437,11 +437,11 @@
     <section id="why">
       <div class="wrap prose">
         <h2 class="section-title">Why it exists</h2>
-        <p class="section-lead">Manifests are complete but noisy. README tech stacks are prose that rots.</p>
+        <p class="section-lead">Manifests describe package requirements in detail. A README tech stack is prose.</p>
         <p>
           <code>package.json</code>, <code>pyproject.toml</code>, <code>Cargo.toml</code> and friends are written for
-          package managers. They include full trees, pinned versions, and dev tooling. Humans and agents
-          need the label on the side of the box, not the supply chain.
+          package managers. AppFacts selects the stack information a reader needs for orientation and records it
+          in a consistent format.
         </p>
         <p>
           <strong>AppFacts</strong> sits in between: curated, glanceable, and still machine-parseable via YAML
@@ -546,21 +546,24 @@ generated:
       <div class="wrap">
         <h2 class="section-title">Generate one</h2>
         <p class="section-lead">
-          Smallest Node route: pass the <strong>project to scan</strong>, not the AppFacts checkout,
-          unless you mean to label this repo. Node 18+, zero npm deps, local Ollama.
+          Clone the repository first. There is no published CLI. Generation uses a model.
+          <code>--check</code> checks an existing label and does not generate one.
         </p>
         <div class="split">
-          <pre># Scan /path/to/my-app (script location is not the target)
-node /path/to/app-facts/generator/generate_app_facts.js \
+          <pre>git clone https://github.com/Catalyst-Forge-LLC/app-facts
+cd app-facts
+
+# Node 18+, zero npm deps. Scan the app, not this checkout.
+node generator/generate_app_facts.js \
   /path/to/my-app --provider ollama --model llama3.1
 
-# Stale-input check, no model required
-node /path/to/app-facts/generator/generate_app_facts.js \
+# Freshness of an existing label. No model.
+node generator/generate_app_facts.js \
   /path/to/my-app --check
 
 # Python 3.8+
-pip install -r /path/to/app-facts/generator/requirements.txt
-python3 /path/to/app-facts/generator/generate_app_facts.py \
+pip install -r generator/requirements.txt
+python3 generator/generate_app_facts.py \
   /path/to/my-app --provider ollama --model llama3.1</pre>
           <div class="prose">
             <p>
