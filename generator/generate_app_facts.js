@@ -140,7 +140,7 @@ function parseArgs(argv) {
   const args = {
     target: null, path: null, output: null, provider: "ollama", model: null,
     ollamaHost: "http://localhost:11434",
-    consultingLink: null, consultingName: null, dryRun: false, check: false, noQr: false,
+    consultingLink: null, consultingName: null, dryRun: false, check: false, scaffold: false, noQr: false,
     badge: null,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -162,6 +162,7 @@ function parseArgs(argv) {
     else if (a === "--consulting-name") args.consultingName = next();
     else if (a === "--dry-run") args.dryRun = true;
     else if (a === "--check") args.check = true;
+    else if (a === "--scaffold") args.scaffold = true;
     else if (a === "--no-qr") args.noQr = true;
     else if (a === "--badge" || a.startsWith("--badge=")) {
       let v = "pill";
@@ -191,12 +192,13 @@ function parseArgs(argv) {
   --path <dir>           Repo to scan (alternative to TARGET)
   --output <file>        Output markdown path (default: <TARGET>/APP_FACTS.md)
   --provider <name>      ollama | openai | anthropic | xai | gemini (default: ollama)
-  --model <name>         Model for the provider (required unless --check)
+  --model <name>         Model for the provider (required unless --check or --scaffold)
   --ollama-host <url>    Ollama base URL
   --consulting-link <url>
   --consulting-name <name>
   --dry-run              Print markdown; do not write files
   --check                Exit non-zero if APP_FACTS.md fingerprint is stale
+  --scaffold             Write APP_FACTS.md from the scan only. No model. Leaves an existing file in place.
   --no-qr                Skip APP_FACTS.png
   --badge[=pill|label|card]
                          Print HTML badge (default pill); write BADGE.md
@@ -207,8 +209,8 @@ Examples:
   appfacts --path ~/code/my-app --check`);
     process.exit(0);
   }
-  if (!args.check && !args.model) {
-    console.error("Missing required --model <name> (or pass --check)");
+  if (!args.check && !args.scaffold && !args.model) {
+    console.error("Missing required --model <name> (or pass --check or --scaffold)");
     process.exit(1);
   }
   return args;
@@ -1098,6 +1100,52 @@ function toYaml(obj, indent = 0) {
 
 // ---------- Rendering ----------
 
+function readRootPackage(root) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function scaffoldData(facts) {
+  const pkg = readRootPackage(facts.root);
+  const rawName = typeof pkg.name === "string" && pkg.name.trim() ? pkg.name.trim() : path.basename(facts.root);
+  const name = rawName.replace(/^@[^/]+\//, "");
+  const keywords = Array.isArray(pkg.keywords) ? pkg.keywords.map((item) => String(item)) : [];
+  let type = "library";
+  if (pkg.bin && (typeof pkg.bin === "string" || Object.keys(pkg.bin).length > 0)) type = "CLI tool";
+  else if (keywords.some((item) => /userscript/i.test(item))) type = "userscript";
+  else if (fs.existsSync(path.join(facts.root, "site", "package.json"))) type = "web app";
+  const deps = pkg.dependencies && typeof pkg.dependencies === "object" ? pkg.dependencies : {};
+  const key_dependencies = Object.keys(deps).sort().slice(0, 8).map((dep) => ({
+    name: dep,
+    purpose: "Declared in package.json.",
+  }));
+  const ranked = Object.entries(facts.languages || {}).sort((a, b) => b[1] - a[1]);
+  const stack = { language: ranked[0]?.[0] || "unknown" };
+  if (pkg.engines?.node || facts.packageManager) stack.runtime = "Node.js";
+  if (facts.packageManager) stack.tooling = facts.packageManager;
+  const build = {};
+  if (facts.packageManager) build.package_manager = facts.packageManager;
+  if (typeof pkg.scripts?.test === "string") build.test = pkg.scripts.test.slice(0, 120);
+  if (typeof pkg.scripts?.build === "string") build.compile = "build script";
+  const data = {
+    name,
+    type,
+    status: "active",
+    license: (typeof pkg.license === "string" && pkg.license) || detectLicense(facts) || "UNKNOWN",
+    stack,
+    key_dependencies,
+    build,
+  };
+  if (typeof pkg.version === "string" && pkg.version.trim()) data.version = pkg.version.trim();
+  if (typeof pkg.homepage === "string" && /^https?:\/\//.test(pkg.homepage)) data.homepage = pkg.homepage;
+  const description = typeof pkg.description === "string" ? pkg.description.trim() : "";
+  data.summary = description || "Scaffolded from repository files. A model did not write this label.";
+  return data;
+}
+
 function buildFrontmatter(data, generatorLabel, fingerprint, consultingLink, consultingName) {
   const fm = {
     app_facts_version: "0.1.0",
@@ -1106,6 +1154,7 @@ function buildFrontmatter(data, generatorLabel, fingerprint, consultingLink, con
     status: data.status || "active",
     license: data.license || "UNKNOWN",
   };
+  if (data.version) fm.version = data.version;
   if (data.homepage) fm.homepage = data.homepage;
   if (data.repository) fm.repository = data.repository;
   fm.stack = data.stack || {};
@@ -1146,7 +1195,7 @@ function titleCase(s) {
   }).join(" ");
 }
 
-function renderAppFacts(fm, consultingLink, consultingName, viewerUrl) {
+function renderAppFacts(fm, consultingLink, consultingName, viewerUrl, summary) {
   const frontmatter = toYaml(fm);
 
   const stackRows = Object.entries(fm.stack)
@@ -1182,7 +1231,7 @@ function renderAppFacts(fm, consultingLink, consultingName, viewerUrl) {
 
 \`${fm.type}\` · **${fm.status}** · ${fm.license}
 
-Curated stack label for this repository — aimed at an under-a-minute skim.
+${summary || "Curated stack label for this repository — aimed at an under-a-minute skim."}
 
 **[Open visual label →][appfacts-label]** · or scan \`APP_FACTS.png\`
 ${linkLine}
@@ -1252,10 +1301,35 @@ async function main() {
     process.exit(1);
   }
 
+  if (args.scaffold && !fs.existsSync(outPath) && !facts.tree.includes("APP_FACTS.md")) {
+    facts.tree.push("APP_FACTS.md");
+    facts.fileTypes = { ...facts.fileTypes, md: (facts.fileTypes.md || 0) + 1 };
+  }
+
   const fingerprint = inputsFingerprint(facts);
 
   if (args.check) {
     runCheck(outPath, fingerprint);
+    return;
+  }
+
+  if (args.scaffold) {
+    if (fs.existsSync(outPath)) {
+      console.log(`Left existing ${outPath} in place`);
+      return;
+    }
+    const drafted = scaffoldData(facts);
+    const summary = drafted.summary;
+    delete drafted.summary;
+    const data = enrichData(drafted, facts);
+    const fm = buildFrontmatter(data, "appfacts-cli v0.1.0 (scaffold)", fingerprint, args.consultingLink, args.consultingName);
+    const errors = validateFrontmatterData(fm);
+    if (errors.length) {
+      console.error("Validation failed:\n- " + errors.join("\n- "));
+      process.exit(1);
+    }
+    fs.writeFileSync(outPath, renderAppFacts(fm, args.consultingLink, args.consultingName, qrTargetUrl(fm), summary));
+    console.log(`Wrote ${outPath} (fingerprint ${fingerprint})`);
     return;
   }
 
