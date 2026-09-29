@@ -546,22 +546,20 @@ generated:
       <div class="wrap">
         <h2 class="section-title">Generate one</h2>
         <p class="section-lead">
-          Clone the repository first. There is no published CLI. Generation uses a model.
+          Install the Node generator with <code>npx @xfacts/appfacts</code> (Node 22.18 or newer).
+          Generation uses a model.
           <code>--check</code> checks an existing label and does not generate one.
+          The Python generator stays in this repository.
         </p>
         <div class="split">
-          <pre>git clone https://github.com/Catalyst-Forge-LLC/app-facts
-cd app-facts
-
-# Node 18+, zero npm deps. Scan the app, not this checkout.
-node generator/generate_app_facts.js \
+          <pre>npx @xfacts/appfacts \
   /path/to/my-app --provider ollama --model llama3.1
 
-# Freshness of an existing label. No model.
-node generator/generate_app_facts.js \
+npx @xfacts/appfacts \
   /path/to/my-app --check
 
-# Python 3.8+
+# Python 3.8+, from a clone of this repository:
+git clone https://github.com/Catalyst-Forge-LLC/app-facts
 pip install -r generator/requirements.txt
 python3 generator/generate_app_facts.py \
   /path/to/my-app --provider ollama --model llama3.1</pre>

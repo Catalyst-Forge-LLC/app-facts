@@ -111,38 +111,28 @@ Only **manifest summaries** (root or one level down — structured `package.json
 
 ## Install & run
 
-The Node generator is the `@xfacts/appfacts` package (command `appfacts`). It is not on npm yet, so run it from a clone until that publish. The Python generator stays in this repository. Generation uses a model. `--check` checks the freshness of an existing label without a model.
+Install the Node generator with `npx @xfacts/appfacts` (Node 22.18 or newer). The Python generator stays in this repository. Generation uses a model. `--check` checks the freshness of an existing label without a model.
 
-```bash
-git clone https://github.com/Catalyst-Forge-LLC/app-facts
-cd app-facts
-```
-
-Pass the **project to scan** as a positional path (or `--path`). The script location and the target repo are independent.
-
-### Python
-
-```bash
-# once, from the AppFacts checkout:
-pip install -r generator/requirements.txt   # PyYAML + segno
-
-# scan any project (writes TARGET/APP_FACTS.md + .png):
-python3 /path/to/app-facts/generator/generate_app_facts.py /path/to/my-app \
-  --provider ollama --model llama3.1
-
-# dogfood this repo from its root:
-python3 generator/generate_app_facts.py . --provider ollama --model llama3.1
-```
+Pass the **project to scan** as a positional path (or `--path`). The command location and the target repo are independent.
 
 ### Node.js
 
 ```bash
-# no install — Node 22.18+ and a vendored QR encoder. Scan any project:
-node /path/to/app-facts/generator/generate_app_facts.js /path/to/my-app \
-  --provider ollama --model llama3.1
+npx @xfacts/appfacts /path/to/my-app --provider ollama --model llama3.1
+npx @xfacts/appfacts /path/to/my-app --check
+```
 
-# dogfood this repo from its root:
-node generator/generate_app_facts.js . --provider ollama --model llama3.1
+Inside this checkout the same script is `node generator/generate_app_facts.js`.
+
+### Python
+
+```bash
+git clone https://github.com/Catalyst-Forge-LLC/app-facts
+cd app-facts
+pip install -r generator/requirements.txt   # PyYAML + segno
+
+python3 generator/generate_app_facts.py /path/to/my-app \
+  --provider ollama --model llama3.1
 ```
 
 ## Choosing a provider
@@ -268,7 +258,8 @@ Hand-authored skeleton: [`examples/APP_FACTS.template.md`](./examples/APP_FACTS.
 
 ## Roadmap
 
-- [ ] Publishable CLI (`npx appfacts` / `pipx install appfacts`)
+- [x] Node CLI on npm (`npx @xfacts/appfacts`)
+- [ ] Python package (`pipx`)
 - [x] `--check` mode to flag a stale `APP_FACTS.md` in CI
 - [x] Self-contained HTML badges (`--badge`, [/badge](https://appfacts.dev/badge/)) — see [`BADGE_SPEC.md`](./BADGE_SPEC.md)
 - [ ] Hosted SVG badge for GitHub READMEs (`/badge.svg?af1=…`)
