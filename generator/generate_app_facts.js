@@ -27,6 +27,7 @@ import {
   decodeViewerHash,
 } from "./viewer_codec.js";
 import { renderBadgeHtml, renderBadgeMarkdown } from "./badge.js";
+import { preferProductTitle, productTitle } from "./product_title.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -1136,7 +1137,7 @@ function readRootPackage(root) {
 function scaffoldData(facts) {
   const pkg = readRootPackage(facts.root);
   const rawName = typeof pkg.name === "string" && pkg.name.trim() ? pkg.name.trim() : path.basename(facts.root);
-  const name = rawName.replace(/^@[^/]+\//, "");
+  const name = preferProductTitle(rawName.replace(/^@[^/]+\//, ""), productTitle(facts.root));
   const keywords = Array.isArray(pkg.keywords) ? pkg.keywords.map((item) => String(item)) : [];
   let type = "library";
   if (pkg.bin && (typeof pkg.bin === "string" || Object.keys(pkg.bin).length > 0)) type = "CLI tool";
