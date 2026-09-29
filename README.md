@@ -100,7 +100,7 @@ It ships in **two identical flavors** so you can use whatever's already on your 
 | | Python | Node.js |
 |---|---|---|
 | **File** | [`generator/generate_app_facts.py`](./generator/generate_app_facts.py) | [`generator/generate_app_facts.js`](./generator/generate_app_facts.js) |
-| **Requires** | Python 3.8+ · `pip install -r requirements.txt` | Node 18+ · zero npm deps |
+| **Requires** | Python 3.8+ · `pip install -r requirements.txt` | Node 22.18+ · zero npm deps |
 | **LLM providers** | ollama · openai · anthropic · xai · gemini | ollama · openai · anthropic · xai · gemini |
 
 Both read the same inputs, use the same prompt, and emit byte-for-byte comparable output. Pick whichever fits your toolchain — there's no functional difference.
@@ -111,7 +111,7 @@ Only **manifest summaries** (root or one level down — structured `package.json
 
 ## Install & run
 
-Clone the AppFacts repository first. There is no published CLI. Choose the Node or Python generator, then point it at the app you want to label. Generation uses a model. `--check` checks the freshness of an existing label without a model.
+The Node generator is the `@xfacts/appfacts` package (command `appfacts`). It is not on npm yet, so run it from a clone until that publish. The Python generator stays in this repository. Generation uses a model. `--check` checks the freshness of an existing label without a model.
 
 ```bash
 git clone https://github.com/Catalyst-Forge-LLC/app-facts
@@ -137,7 +137,7 @@ python3 generator/generate_app_facts.py . --provider ollama --model llama3.1
 ### Node.js
 
 ```bash
-# no install — Node 18+ and a vendored QR encoder. Scan any project:
+# no install — Node 22.18+ and a vendored QR encoder. Scan any project:
 node /path/to/app-facts/generator/generate_app_facts.js /path/to/my-app \
   --provider ollama --model llama3.1
 

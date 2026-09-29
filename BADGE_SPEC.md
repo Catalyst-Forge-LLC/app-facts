@@ -98,7 +98,7 @@ If README support is a priority, prioritize this endpoint; if footer/menu is the
 - [x] Root `<a>` has an `aria-label`; wordmark meets AA contrast on the badge's own background.
 - [x] Link targets the `af1` URL from `SPEC-af1.md`; no extra data or tracking params.
 - [x] Generator emits payload-substituted snippets (no `YOUR_PAYLOAD` placeholder in output).
-- [x] appfacts.dev "get a badge" page and generator output produce identical markup for the same payload (`generator/badge.js` ≡ `site/badge/render.js`; JS ≡ Python tests).
+- [x] appfacts.dev "get a badge" page and generator output produce identical markup for the same payload (HTML from `site/badge/render.js`, `generator/badge.js`, and `generator/badge.py`; the two JavaScript files are not a byte copy of each other).
 - [ ] (If prioritized) `badge.svg` endpoint returns a stateless, escaped, size-limited SVG matching the HTML variants.
 
 ## Revision history

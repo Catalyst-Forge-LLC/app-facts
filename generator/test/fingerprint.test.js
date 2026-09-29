@@ -2,16 +2,18 @@
  * Cross-runtime fingerprint fixture — see SPEC.md “Fingerprint canonicalization”
  * Run: node --test generator/test/fingerprint.test.js
  */
-const { describe, it } = require("node:test");
-const assert = require("node:assert/strict");
-const path = require("path");
-const { spawnSync } = require("child_process");
-const { detectRepoFacts, inputsFingerprint, enrichData } = require("../generate_app_facts.js");
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { detectRepoFacts, inputsFingerprint, enrichData } from "../generate_app_facts.js";
 
-const FIXTURE = path.join(__dirname, "fixtures", "mini-repo");
+const here = path.dirname(fileURLToPath(import.meta.url));
+const FIXTURE = path.join(here, "fixtures", "mini-repo");
 
 function pythonFingerprint(fixture) {
-  const script = path.join(__dirname, "print_fingerprint.py");
+  const script = path.join(here, "print_fingerprint.py");
   const errors = [];
   for (const bin of ["python", "python3"]) {
     const proc = spawnSync(bin, [script, fixture], {

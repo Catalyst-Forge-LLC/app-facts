@@ -3,17 +3,20 @@
  * Uses vendored qrcode-encoder (MIT) for the matrix; packs PNG with Node zlib
  * so output stays small (the IIFE's toPng uses uncompressed IDAT).
  */
-const fs = require("fs");
-const path = require("path");
-const zlib = require("zlib");
-const vm = require("vm");
+import fs from "node:fs";
+import path from "node:path";
+import zlib from "node:zlib";
+import vm from "node:vm";
+import { fileURLToPath } from "node:url";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 let cached = null;
 
 function loadEncoder() {
   if (cached) return cached;
   const src = fs.readFileSync(
-    path.join(__dirname, "vendor", "qrcode-encoder.iife.js"),
+    path.join(here, "vendor", "qrcode-encoder.iife.js"),
     "utf8",
   );
   const sandbox = { exports: {}, module: { exports: {} } };
@@ -95,4 +98,4 @@ function writeQrPng(text, outPath, opts = {}) {
   fs.writeFileSync(outPath, png);
 }
 
-module.exports = { writeQrPng };
+export { writeQrPng };

@@ -1,19 +1,11 @@
 /**
  * Canonical AppFacts HTML badge snippets (BADGE_SPEC.md).
- * Keep byte-identical with generator/badge.py and site/badge/render.js.
+ * HTML output matches generator/badge.py and site/badge/render.js.
  * No external CSS/images — all styles inline; root starts with all:unset.
  *
- * Dual load: Node (module.exports) and browser (globalThis.AppFactsBadge).
+ * Node ESM. The browser copy is site/badge/render.js.
  */
-(function (root, factory) {
-  const api = factory();
-  if (typeof module !== "undefined" && module.exports) {
-    module.exports = api;
-  }
-  if (root) {
-    root.AppFactsBadge = api;
-  }
-})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+const api = (function () {
   function escHtml(s) {
     return String(s ?? "")
       .replace(/&/g, "&amp;")
@@ -129,4 +121,12 @@
     renderBadgeHtml,
     renderBadgeMarkdown,
   };
-});
+})();
+
+export const {
+  escHtml,
+  stackSummaryLine,
+  labelValueText,
+  renderBadgeHtml,
+  renderBadgeMarkdown,
+} = api;

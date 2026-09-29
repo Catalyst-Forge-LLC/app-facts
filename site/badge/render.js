@@ -1,6 +1,7 @@
 /**
  * Canonical AppFacts HTML badge snippets (BADGE_SPEC.md).
- * Keep byte-identical with generator/badge.py and site/badge/render.js.
+ * Browser script. HTML output matches generator/badge.js and generator/badge.py.
+ * generator/badge.js is Node ESM; do not overwrite this file with that copy.
  * No external CSS/images — all styles inline; root starts with all:unset.
  *
  * Dual load: Node (module.exports) and browser (globalThis.AppFactsBadge).

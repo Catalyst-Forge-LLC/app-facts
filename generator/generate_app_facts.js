@@ -2,9 +2,10 @@
 /**
  * generate_app_facts.js — draft an APP_FACTS.md for a repo using an LLM.
  * Providers: ollama (local), openai, anthropic, xai, gemini.
- * Requires Node >= 18 (built-in fetch). No npm dependencies.
+ * Requires Node >= 22.18. No npm dependencies.
  *
  * Usage:
+ *   appfacts /path/to/project --provider ollama --model llama3.1
  *   node generate_app_facts.js /path/to/project --provider ollama --model llama3.1
  *   node generate_app_facts.js --path /path/to/project --check
  *   node generate_app_facts.js . --provider ollama --model llama3.1 \
@@ -12,19 +13,22 @@
  *     --consulting-name "Catalyst Forge"
  */
 
-const fs = require("fs");
-const path = require("path");
-const os = require("os");
-const crypto = require("crypto");
-const { execSync, execFileSync } = require("child_process");
-const { writeQrPng } = require("./qr.js");
-const {
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import crypto from "node:crypto";
+import { execSync, execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { writeQrPng } from "./qr.js";
+import {
   viewerUrlFor,
   buildViewerPayload,
   encodeViewerHash,
   decodeViewerHash,
-} = require("./viewer_codec.js");
-const { renderBadgeHtml, renderBadgeMarkdown } = require("./badge.js");
+} from "./viewer_codec.js";
+import { renderBadgeHtml, renderBadgeMarkdown } from "./badge.js";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 const BADGE_VARIANTS = new Set(["pill", "label", "card"]);
 
@@ -128,7 +132,7 @@ const CODE_EXT = {
 };
 const MAX_SCAN_FILES = 20000;
 
-const SYSTEM_PROMPT = fs.readFileSync(path.join(__dirname, "prompt.md"), "utf8").trim();
+const SYSTEM_PROMPT = fs.readFileSync(path.join(here, "prompt.md"), "utf8").trim();
 
 // ---------- CLI args ----------
 
@@ -181,7 +185,7 @@ function parseArgs(argv) {
     }
   }
   if (args.help) {
-    console.log(`Usage: node generate_app_facts.js [TARGET] [options]
+    console.log(`Usage: appfacts [TARGET] [options]
 
   TARGET                 Repo to scan (default: .). Same as --path.
   --path <dir>           Repo to scan (alternative to TARGET)
@@ -199,8 +203,8 @@ function parseArgs(argv) {
   -h, --help             Show this help
 
 Examples:
-  node generate_app_facts.js ~/code/my-app --provider ollama --model llama3.1
-  node generate_app_facts.js --path ~/code/my-app --check`);
+  appfacts ~/code/my-app --provider ollama --model llama3.1
+  appfacts --path ~/code/my-app --check`);
     process.exit(0);
   }
   if (!args.check && !args.model) {
@@ -1321,7 +1325,7 @@ async function main() {
   }
 }
 
-module.exports = {
+export {
   detectRepoFacts,
   inputsFingerprint,
   enrichData,
@@ -1332,7 +1336,10 @@ module.exports = {
   viewerUrlFor,
 };
 
-if (require.main === module) {
+const invokedDirectly = Boolean(
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url),
+);
+if (invokedDirectly) {
   main().catch((err) => {
     console.error(err.message || err);
     process.exit(1);

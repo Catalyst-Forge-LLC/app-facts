@@ -1,0 +1,35 @@
+{
+  "name": "@xfacts/appfacts",
+  "version": "0.1.0",
+  "description": "Draft an APP_FACTS.md label from a repository.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "appfacts": "./generate_app_facts.js"
+  },
+  "files": [
+    "generate_app_facts.js",
+    "viewer_codec.js",
+    "qr.js",
+    "badge.js",
+    "prompt.md",
+    "vendor",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Catalyst-Forge-LLC/app-facts.git",
+    "directory": "generator"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "node --test test/badge.test.js test/fingerprint.test.js test/af1_roundtrip.test.js",
+    "prepack": "node scripts/stage-license.mjs"
+  }
+}

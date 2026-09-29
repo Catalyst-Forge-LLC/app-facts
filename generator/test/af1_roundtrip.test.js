@@ -2,16 +2,16 @@
  * af1 compact payload round-trip — see SPEC-af1.md
  * Run: node --test generator/test/af1_roundtrip.test.js
  */
-const { describe, it } = require("node:test");
-const assert = require("node:assert/strict");
-const {
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import {
   buildViewerPayload,
   encodeViewerHash,
   decodeViewerHash,
   viewerUrlFor,
   VIEWER_PREFIX,
   MAX_VIEWER_URL_LEN,
-} = require("../viewer_codec.js");
+} from "../viewer_codec.js";
 
 const SAMPLE_FM = {
   name: "Demo",

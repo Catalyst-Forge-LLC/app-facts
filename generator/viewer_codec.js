@@ -3,7 +3,7 @@
  * Payload = zlib-deflate(JSON) as base64url. Keep in sync with generate_app_facts.py
  * and site/v/index.html.
  */
-const zlib = require("zlib");
+import zlib from "node:zlib";
 
 const VIEWER_ORIGIN = "https://appfacts.dev";
 const VIEWER_PREFIX = "af1.";
@@ -89,7 +89,7 @@ function viewerUrlFor(fm) {
   return url;
 }
 
-module.exports = {
+export {
   VIEWER_ORIGIN,
   VIEWER_PREFIX,
   MAX_VIEWER_URL_LEN,

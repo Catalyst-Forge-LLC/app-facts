@@ -30,7 +30,7 @@ Absent evidence should stay absent, `unknown`, or `undisclosed` in hand-authored
 pip install -r requirements.txt   # PyYAML + segno (QR PNGs)
 ```
 
-Node needs no install (QR encoder is vendored under `vendor/`).
+Node needs no install inside this checkout (QR encoder is vendored under `vendor/`). The same script is the `@xfacts/appfacts` package, command `appfacts`. That package is not on npm yet.
 
 ## Usage
 
