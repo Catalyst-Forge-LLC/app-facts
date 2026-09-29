@@ -140,7 +140,7 @@ function parseArgs(argv) {
   const args = {
     target: null, path: null, output: null, provider: "ollama", model: null,
     ollamaHost: "http://localhost:11434",
-    consultingLink: null, consultingName: null, dryRun: false, check: false, scaffold: false, noQr: false,
+    consultingLink: null, consultingName: null, dryRun: false, check: false, scaffold: false, force: false, noQr: false,
     badge: null,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -163,6 +163,7 @@ function parseArgs(argv) {
     else if (a === "--dry-run") args.dryRun = true;
     else if (a === "--check") args.check = true;
     else if (a === "--scaffold") args.scaffold = true;
+    else if (a === "--force") args.force = true;
     else if (a === "--no-qr") args.noQr = true;
     else if (a === "--badge" || a.startsWith("--badge=")) {
       let v = "pill";
@@ -199,6 +200,7 @@ function parseArgs(argv) {
   --dry-run              Print markdown; do not write files
   --check                Exit non-zero if APP_FACTS.md fingerprint is stale
   --scaffold             Write APP_FACTS.md from the scan only. No model. Leaves an existing file in place.
+  --force                With --scaffold, rewrite an existing APP_FACTS.md.
   --no-qr                Skip APP_FACTS.png
   --badge[=pill|label|card]
                          Print HTML badge (default pill); write BADGE.md
@@ -1314,7 +1316,7 @@ async function main() {
   }
 
   if (args.scaffold) {
-    if (fs.existsSync(outPath)) {
+    if (fs.existsSync(outPath) && !args.force) {
       console.log(`Left existing ${outPath} in place`);
       return;
     }
