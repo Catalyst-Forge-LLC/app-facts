@@ -15,8 +15,10 @@ stack:
 key_dependencies:
   - name: wrangler
     purpose: Cloudflare deployment
+    registry: npm
   - name: getfilepress
     purpose: documentation management
+    registry: npm
 services:
   - name: Cloudflare
     role: hosting and edge computing
@@ -50,8 +52,8 @@ Curated stack label for this repository — aimed at an under-a-minute skim.
 
 ### Key dependencies
 
-- `wrangler` — Cloudflare deployment
-- `getfilepress` — documentation management
+- `wrangler` (npm) — Cloudflare deployment
+- `getfilepress` (npm) — documentation management
 
 ### Services
 
@@ -64,4 +66,4 @@ Curated stack label for this repository — aimed at an under-a-minute skim.
 ---
 *Generated with [AppFacts](https://appfacts.dev) · Open the [visual label][appfacts-label]*
 
-[appfacts-label]: https://appfacts.dev/v#af1.eNp1UUtrAjEQ_ivLd45Kr7kKhRbby3orpYzJmE3NiyS7ZRH_e4krRQ-9TSbfa2bOmCCfBAJ5hkTv2bluO7A6QaDOqTWdPWTKMwRKpToWSJCqdmIIOKs4lIZ6e9kvCHWCPMNRMCOZ9rOfE_cq21RF90oTLTUE8hiqvfq-R83r73IVmJ0NBhLbvofAEEu9vV0c9dFRbr6J1IkMf3kKZDhDIoXkcRHQnArkxxkBEj-ZgnGcG-NBotOcXJw9h4qLWMCG69E6TplLuRF0VGPDULUxdIvZwvkUKJP6M3oI1-LccncUdMfacKeiT-N1lMY9jNbptqf_Bxmi57RscKg1FbnZlHYe1a6z1jw1J06x2BrzfIcytg7jYa2i32ypkptLXT3HbHi1223vNHD5BdsPrdY
+[appfacts-label]: https://appfacts.dev/v#af1.eNp1UctKAzEU_ZXhrNMWt9kWBEXdTHcicpvcZmLzIsmMDKX_LukUaQV3eZznvSdMkA8CgTxDovfsXLcdWB0hUOfUHp3dZ8ozBEqlOhZIkKp2Ygg4qziUhnp92i0IdYQ8wVEwI5n2s5sT9yrbVEX3TBMtZwjkMVR78X2Lmtdf5SIwOxsMJLZ9D4Ehlnq9uzjqg6PcfBOpIxn-9BTIcIZECsnjLKA5Fcj3EwIkvjMF4zg3xp1Epzm5OHsOLUiLsNAXmuF6sI5T5lKuVB3V2NBUbQzdYvuX_SFQJvVrfhe4Rbx26SjojrXhTkWfxku9xt2P1uk2u__LDdFzWqY61JqK3GxKW5lqG1trnpoTp1hsjXm-QRlbh3G_VtFvtlTJzaWuHmM2vHp52d5o4PwDGLKzEg

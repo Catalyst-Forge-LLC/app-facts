@@ -20,6 +20,7 @@ function buildViewerPayload(fm, {
   const deps = (fm.key_dependencies || []).slice(0, maxDeps).map((d) => {
     const item = { n: d.name };
     if (includeDepPurpose && d.purpose) item.p = d.purpose;
+    if (d.registry) item.e = String(d.registry).toLowerCase();
     return item;
   });
   const payload = {

@@ -23,7 +23,7 @@ Hand edits to the body are fine for local readability, but the body **MAY drift*
 | `status` | enum | One of: `active`, `maintenance`, `archived`, `experimental` |
 | `license` | string | SPDX identifier, e.g. `"MIT"`, or `"UNKNOWN"` |
 | `stack` | map\<string,string\> | Layer name → choice. **MUST contain at least one entry.** |
-| `key_dependencies` | list of `{name, purpose}` | Curated packages — **0–8 items** (empty array allowed) |
+| `key_dependencies` | list of `{name, purpose, registry?}` | Curated packages — **0–8 items** (empty array allowed). `registry` is optional (`npm`, `pypi`, `cargo`, `go`, `rubygems`, `nuget`, `hex`, `packagist`) |
 | `build` | map\<string,string\> | e.g. `package_manager`, `test`, `ci` (may be `{}`) |
 | `generated` | object | `date`, `generator`; optional `inputs_fingerprint` |
 

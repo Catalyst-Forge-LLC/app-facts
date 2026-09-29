@@ -21,7 +21,7 @@ SAMPLE_FM = {
     "license": "MIT",
     "stack": {"language": "TypeScript", "framework": "SvelteKit"},
     "key_dependencies": [
-        {"name": "@sveltejs/kit", "purpose": "SSR framework"},
+        {"name": "@sveltejs/kit", "purpose": "SSR framework", "registry": "npm"},
         {"name": "stripe", "purpose": "Billing"},
     ],
     "services": [
@@ -42,6 +42,8 @@ class Af1RoundTrip(unittest.TestCase):
             self.assertIn(k, p)
         self.assertEqual(p["deps"][0]["n"], "@sveltejs/kit")
         self.assertEqual(p["deps"][0]["p"], "SSR framework")
+        self.assertEqual(p["deps"][0]["e"], "npm")
+        self.assertNotIn("e", p["deps"][1])
         self.assertEqual(p["svc"][0]["n"], "Stripe")
         self.assertEqual(p["svc"][0]["r"], "Billing")
 

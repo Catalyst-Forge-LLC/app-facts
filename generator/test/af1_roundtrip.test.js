@@ -20,7 +20,7 @@ const SAMPLE_FM = {
   license: "MIT",
   stack: { language: "TypeScript", framework: "SvelteKit" },
   key_dependencies: [
-    { name: "@sveltejs/kit", purpose: "SSR framework" },
+    { name: "@sveltejs/kit", purpose: "SSR framework", registry: "npm" },
     { name: "stripe", purpose: "Billing" },
   ],
   services: [
@@ -41,6 +41,8 @@ describe("af1 compact payload", () => {
     }
     assert.equal(p.deps[0].n, "@sveltejs/kit");
     assert.equal(p.deps[0].p, "SSR framework");
+    assert.equal(p.deps[0].e, "npm");
+    assert.equal(p.deps[1].e, undefined);
     assert.equal(p.svc[0].n, "Stripe");
     assert.equal(p.svc[0].r, "Billing");
     assert.equal(p.homepage, SAMPLE_FM.homepage);

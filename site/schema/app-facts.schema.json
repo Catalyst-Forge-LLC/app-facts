@@ -54,7 +54,12 @@
         "required": ["name", "purpose"],
         "properties": {
           "name": { "type": "string", "minLength": 1 },
-          "purpose": { "type": "string", "minLength": 1 }
+          "purpose": { "type": "string", "minLength": 1 },
+          "registry": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Package registry when known, so the name can be linked. Examples: npm, pypi, cargo, go, rubygems, nuget, hex, packagist."
+          }
         },
         "additionalProperties": false
       }

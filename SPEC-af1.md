@@ -73,6 +73,7 @@ Grounded in the shipped generators (`generator/viewer_codec.js` and the matching
 |---|---|---|---|
 | `n` | `key_dependencies[].name` | string | yes |
 | `p` | `key_dependencies[].purpose` | string | no | May be omitted when shrinking for URL length |
+| `e` | `key_dependencies[].registry` | string | no | Registry id (`npm`, `pypi`, …). Omitted when unknown |
 
 ### `svc[]` items
 
@@ -92,7 +93,7 @@ Grounded in the shipped generators (`generator/viewer_codec.js` and the matching
   "license": "MIT",
   "stack": { "language": "TypeScript", "framework": "SvelteKit" },
   "deps": [
-    { "n": "@sveltejs/kit", "p": "SSR framework" },
+    { "n": "@sveltejs/kit", "p": "SSR framework", "e": "npm" },
     { "n": "stripe", "p": "Billing" }
   ],
   "svc": [

@@ -786,6 +786,36 @@ def extract_json(text):
     return json.loads(text)
 
 
+def registry_for_package_manager(package_manager):
+    value = str(package_manager or "").lower()
+    if any(token in value for token in ("pnpm", "npm", "yarn", "bun")):
+        return "npm"
+    if any(token in value for token in ("pip", "poetry", "uv", "pipenv", "pdm")):
+        return "pypi"
+    if "cargo" in value:
+        return "cargo"
+    if re.search(r"\bgo\b", value):
+        return "go"
+    if "bundler" in value or re.search(r"\bgem\b", value):
+        return "rubygems"
+    return ""
+
+
+def stamp_dependency_registry(deps, package_manager):
+    registry = registry_for_package_manager(package_manager)
+    if not registry or not isinstance(deps, list):
+        return deps
+    stamped = []
+    for dep in deps:
+        if not isinstance(dep, dict) or dep.get("registry"):
+            stamped.append(dep)
+            continue
+        row = dict(dep)
+        row["registry"] = registry
+        stamped.append(row)
+    return stamped
+
+
 def enrich_data(data, facts):
     out = dict(data)
     # Git remote is authoritative; resolve SSH Host aliases → public https URL.
@@ -807,7 +837,8 @@ def enrich_data(data, facts):
     deps = out.get("key_dependencies") or []
     if isinstance(deps, list) and len(deps) > MAX_DEPS:
         print(f"Truncating key_dependencies from {len(deps)} to {MAX_DEPS}", file=sys.stderr)
-        out["key_dependencies"] = deps[:MAX_DEPS]
+        deps = deps[:MAX_DEPS]
+    out["key_dependencies"] = stamp_dependency_registry(deps, facts.get("package_manager"))
 
     services = out.get("services") or []
     if isinstance(services, list) and len(services) > MAX_SERVICES:
@@ -865,6 +896,8 @@ def validate_frontmatter_data(fm):
                 errors.append(f"key_dependencies[{i}].name required")
             if not isinstance(d, dict) or not d.get("purpose"):
                 errors.append(f"key_dependencies[{i}].purpose required")
+            if isinstance(d, dict) and d.get("registry") is not None and not str(d.get("registry")).strip():
+                errors.append(f"key_dependencies[{i}].registry must be a registry id when present")
     services = fm.get("services")
     if services is not None:
         if not isinstance(services, list):
@@ -935,6 +968,8 @@ def build_viewer_payload(
         item = {"n": d["name"]}
         if include_dep_purpose and d.get("purpose"):
             item["p"] = d["purpose"]
+        if d.get("registry"):
+            item["e"] = str(d["registry"]).lower()
         deps.append(item)
     payload = {
         "v": 1,
@@ -1039,7 +1074,14 @@ def render_app_facts(fm, consulting_link=None, consulting_name=None, viewer_url=
 
     stack_rows = "\n".join(f"| {_title_case(k)} | {v} |" for k, v in fm["stack"].items())
     if fm["key_dependencies"]:
-        dep_lines = "\n".join(f"- `{d['name']}` — {d['purpose']}" for d in fm["key_dependencies"])
+        dep_lines = "\n".join(
+            "- `{name}`{registry} — {purpose}".format(
+                name=d["name"],
+                registry=f" ({d['registry']})" if d.get("registry") else "",
+                purpose=d["purpose"],
+            )
+            for d in fm["key_dependencies"]
+        )
     else:
         dep_lines = "_None listed_"
 

@@ -971,6 +971,25 @@ function extractJson(text) {
 
 // ---------- Enrich + validate ----------
 
+function registryForPackageManager(packageManager) {
+  const value = String(packageManager || "").toLowerCase();
+  if (/\b(pnpm|npm|yarn|bun)\b/.test(value)) return "npm";
+  if (/\b(pip|poetry|uv|pipenv|pdm)\b/.test(value)) return "pypi";
+  if (/\bcargo\b/.test(value)) return "cargo";
+  if (/\bgo\b/.test(value)) return "go";
+  if (/\b(bundler|gem)\b/.test(value)) return "rubygems";
+  return "";
+}
+
+function stampDependencyRegistry(deps, packageManager) {
+  const registry = registryForPackageManager(packageManager);
+  if (!registry || !Array.isArray(deps)) return deps;
+  return deps.map((dep) => {
+    if (!dep || typeof dep !== "object" || dep.registry) return dep;
+    return { ...dep, registry };
+  });
+}
+
 function enrichData(data, facts) {
   const out = { ...data };
   // Git remote is authoritative; resolve SSH Host aliases → public https URL.
@@ -992,6 +1011,7 @@ function enrichData(data, facts) {
     console.warn(`Truncating key_dependencies from ${out.key_dependencies.length} to ${MAX_DEPS}`);
     out.key_dependencies = out.key_dependencies.slice(0, MAX_DEPS);
   }
+  out.key_dependencies = stampDependencyRegistry(out.key_dependencies, facts.packageManager);
 
   if (Array.isArray(out.services) && out.services.length > MAX_SERVICES) {
     console.warn(`Truncating services from ${out.services.length} to ${MAX_SERVICES}`);
@@ -1045,6 +1065,9 @@ function validateFrontmatterData(fm) {
     fm.key_dependencies.forEach((d, i) => {
       if (!d || typeof d.name !== "string" || !d.name) errors.push(`key_dependencies[${i}].name required`);
       if (!d || typeof d.purpose !== "string" || !d.purpose) errors.push(`key_dependencies[${i}].purpose required`);
+      if (d && d.registry != null && (typeof d.registry !== "string" || !d.registry.trim())) {
+        errors.push(`key_dependencies[${i}].registry must be a registry id when present`);
+      }
     });
   }
   if (fm.services !== undefined && fm.services !== null) {
@@ -1123,6 +1146,7 @@ function scaffoldData(facts) {
   const key_dependencies = Object.keys(deps).sort().slice(0, 8).map((dep) => ({
     name: dep,
     purpose: "Declared in package.json.",
+    registry: "npm",
   }));
   const ranked = Object.entries(facts.languages || {}).sort((a, b) => b[1] - a[1]);
   const stack = { language: ranked[0]?.[0] || "unknown" };
@@ -1205,7 +1229,7 @@ function renderAppFacts(fm, consultingLink, consultingName, viewerUrl, summary) 
     .join("\n");
 
   const depLines = (fm.key_dependencies || []).length
-    ? fm.key_dependencies.map((d) => `- \`${d.name}\` — ${d.purpose}`).join("\n")
+    ? fm.key_dependencies.map((d) => `- \`${d.name}\`${d.registry ? ` (${d.registry})` : ""} — ${d.purpose}`).join("\n")
     : "_None listed_";
 
   const services = Array.isArray(fm.services) ? fm.services : [];
